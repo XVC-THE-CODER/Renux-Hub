@@ -87,11 +87,11 @@ end
 local function hopServer()
     task.spawn(function()
         local function getServers(cursor)
-            local url = "https://games.roproxy.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"
+            local url = "https://games.roproxy.com/v1/games/".. game.PlaceId.. "/servers/Public?sortOrder=Asc&limit=100"
             if cursor then
-                url = url .. "&cursor=" .. cursor
+                url = url.. "&cursor=".. cursor
             end
-            
+
             local success, result
             local req = request or http_request or syn.request or (http and http.request)
             if req then
@@ -104,7 +104,7 @@ local function hopServer()
                     return game:HttpGet(url)
                 end)
             end
-            
+
             if success and result then
                 return HttpService:JSONDecode(result)
             end
@@ -113,7 +113,7 @@ local function hopServer()
 
         local cursor = nil
         local validServers = {}
-        
+
         -- Mengambil data server aktif (maksimal 2 halaman pencarian)
         for _ = 1, 2 do
             local data = getServers(cursor)
@@ -464,6 +464,133 @@ task.spawn(function()
                 hasReachedTrigger = true
                 clearTpParts()
             end
+        end
+    end
+end)
+
+-- // ============================================
+-- // FITUR TAMBAHAN: CEK SUARA SETELAH TRIGGER
+-- // TIDAK MENGUBAH KODE DI ATAS
+-- // ============================================
+local SoundService = game:GetService("SoundService")
+local SOUND_CHECK_DURATION = 4 -- durasi tunggu suara setelah trigger (detik)
+
+local soundCheckActive = false
+local soundDetected = false
+local soundConns = {}
+local soundAddedConn = nil
+
+local function resetCharacterNow()
+    pcall(function()
+        if player.Character then
+            local hum = player.Character:FindFirstChildOfClass("Humanoid")
+            if hum then
+                hum.Health = 0
+            else
+                player.Character:BreakJoints()
+            end
+        end
+    end)
+end
+
+local function clearSoundListeners()
+    for _, c in ipairs(soundConns) do
+        pcall(function() c:Disconnect() end)
+    end
+    table.clear(soundConns)
+    if soundAddedConn then
+        pcall(function() soundAddedConn:Disconnect() end)
+        soundAddedConn = nil
+    end
+end
+
+local function hookSound(soundObj)
+    if not soundObj:IsA("Sound") then return end
+    -- kalo lagi playing pas di hook, langsung kehitung ada suara
+    if soundObj.IsPlaying then
+        soundDetected = true
+    end
+    table.insert(soundConns, soundObj.Played:Connect(function()
+        soundDetected = true
+    end))
+end
+
+local function startPostTriggerSoundCheck()
+    if soundCheckActive then return end
+    soundCheckActive = true
+    soundDetected = false
+    clearSoundListeners()
+
+    -- hook semua sound yang udah ada
+    for _, v in ipairs(workspace:GetDescendants()) do
+        if v:IsA("Sound") then hookSound(v) end
+    end
+    for _, v in ipairs(SoundService:GetDescendants()) do
+        if v:IsA("Sound") then hookSound(v) end
+    end
+
+    -- hook sound baru yang muncul setelah trigger
+    soundAddedConn = workspace.DescendantAdded:Connect(function(v)
+        if v:IsA("Sound") then
+            task.wait(0.05)
+            hookSound(v)
+        end
+    end)
+
+    task.spawn(function()
+        local elapsed = 0
+        while elapsed < SOUND_CHECK_DURATION do
+            task.wait(0.1)
+            elapsed += 0.1
+
+            -- double check: kalau ada sound IsPlaying di interval ini, hitung ada
+            if not soundDetected then
+                for _, v in ipairs(workspace:GetDescendants()) do
+                    if v:IsA("Sound") and v.IsPlaying then
+                        soundDetected = true
+                        break
+                    end
+                end
+            end
+
+            if soundDetected then break end
+            if not hasReachedTrigger then
+                -- udah ke reset dari tempat lain, batalin cek
+                clearSoundListeners()
+                soundCheckActive = false
+                return
+            end
+        end
+
+        if hasReachedTrigger then
+            if soundDetected then
+                -- ada suara = ga ngapa-ngapain, biarin hasReachedTrigger tetap true
+                -- print("[Renux] Trigger + Suara terdeteksi, farm selesai")
+            else
+                -- ga ada suara = reset character langsung
+                -- print("[Renux] Trigger tapi ga ada suara, reset character")
+                resetCharacterNow()
+            end
+        end
+
+        task.wait(0.5)
+        clearSoundListeners()
+        soundCheckActive = false
+    end)
+end
+
+-- Watcher hasReachedTrigger (false -> true)
+task.spawn(function()
+    local wasTriggered = hasReachedTrigger
+    while true do
+        task.wait(0.15)
+        if hasReachedTrigger and not wasTriggered then
+            wasTriggered = true
+            startPostTriggerSoundCheck()
+        elseif not hasReachedTrigger and wasTriggered then
+            wasTriggered = false
+            clearSoundListeners()
+            soundCheckActive = false
         end
     end
 end)
