@@ -2,7 +2,7 @@ local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/SCRIP
 
 local window = library:window({
     title = "Renux hub",
-    desc = "v1.0 - Fling Filter 40",
+    desc = "v1.1",
     transparent = 0.15,
     theme = "fire",
     autoshow = true,
@@ -17,6 +17,7 @@ local TeleportTab = window:AddTab("Teleport", "user")
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 
 local MurderESP = false
@@ -32,6 +33,7 @@ local RED = Color3.fromRGB(255, 0, 0)
 local BLUE = Color3.fromRGB(0, 140, 255)
 
 local Noclip = false
+local InfiniteJump = false
 local Xray = false
 local WalkSpeedEnabled = false
 local WalkSpeedValue = 20
@@ -74,6 +76,17 @@ local function GetRoleHRP(roleName)
     end
     return nil
 end
+
+-- INFINITE JUMP LOGIC
+UserInputService.JumpRequest:Connect(function()
+    if InfiniteJump then
+        local char = LocalPlayer.Character
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum:ChangeState(Enum.HumanoidStateType.Jumping)
+        end
+    end
+end)
 
 RunService:BindToRenderStep("RenuxESP", 1, function()
     local cam = workspace.CurrentCamera
@@ -198,7 +211,6 @@ local function StartAutoKill()
     end)
 end
 
--- LOOP INSIDE + FILTER FLING 40 VELOCITY
 local function StartLoopInside(role)
     task.spawn(function()
         while (role == "Murder" and LoopInsideMurder) or (role == "Sheriff" and LoopInsideSheriff) do
@@ -206,20 +218,17 @@ local function StartLoopInside(role)
             local hrp = char and char:FindFirstChild("HumanoidRootPart")
             local hum = char and char:FindFirstChildOfClass("Humanoid")
             local targetHRP = GetRoleHRP(role)
-
             if not hrp or not targetHRP then task.wait(0.5) continue end
 
-            -- FILTER: kalo velocity target >= 40 atau velocity lu sendiri >= 40, matikan
             local targetVel = targetHRP.Velocity.Magnitude
             local myVel = hrp.Velocity.Magnitude
             if targetVel >= 40 or myVel >= 40 then
                 if role == "Murder" then LoopInsideMurder = false else LoopInsideSheriff = false end
-                library:Notification({ title = "Fling Filter", desc = role.." velocity "..math.floor(targetVel).." -> Loop OFF", duration = 3 })
+                library:Notification({ title = "Fling Filter", desc = role.." velocity "..math.floor(targetVel).." -> OFF", duration = 3 })
                 break
             end
 
             if hum then hum.PlatformStand = true hum.Sit = true end
-
             hrp.CFrame = targetHRP.CFrame * CFrame.new(0, 2.5, 0) * CFrame.Angles(math.rad(90), 0, 0)
             task.wait(0.12)
             hrp.CFrame = targetHRP.CFrame * CFrame.new(0, -0.8, 0) * CFrame.Angles(math.rad(90), 0, 0)
@@ -232,21 +241,22 @@ local function StartLoopInside(role)
 end
 
 -- MAIN
-MainTab:Addtoggle({ title = "esp murder", value = false, callback = function(v) MurderESP = v end })
-MainTab:Addtoggle({ title = "esp sheriff", value = false, callback = function(v) SheriffESP = v end })
+MainTab:Addtoggle({ title = "ESP Murder", value = false, callback = function(v) MurderESP = v end })
+MainTab:Addtoggle({ title = "ESP Sheriff", value = false, callback = function(v) SheriffESP = v end })
 MainTab:AddDivider()
 MainTab:Addtoggle({ title = "Aimbot Murder Only", value = false, callback = function(v) AimbotMurder = v end })
 MainTab:AddDivider()
 MainTab:Addtoggle({ title = "Auto Collect Coin (Slow)", value = false, callback = function(v) AutoCoin = v if v then StartCoinTP() end end })
 MainTab:AddDivider()
-MainTab:Addtoggle({ title = "Auto Kill all", value = false, callback = function(v) AutoKill = v if v then StartAutoKill() end end })
+MainTab:Addtoggle({ title = "Auto Kill All", value = false, callback = function(v) AutoKill = v if v then StartAutoKill() end end })
 
--- SERVER
-ServerTab:Addtoggle({ title = "noclip", value = false, callback = function(v) Noclip = v end })
+-- SERVER - Noclip + Infinite Jump dibawahnya
+ServerTab:Addtoggle({ title = "Noclip", value = false, callback = function(v) Noclip = v end })
+ServerTab:Addtoggle({ title = "Infinite Jump", value = false, callback = function(v) InfiniteJump = v end })
 ServerTab:Addtoggle({ title = "X-ray", value = false, callback = function(v) Xray = v SetXray(v) end })
 ServerTab:AddDivider()
 ServerTab:Addtoggle({
-    title = "walk speed",
+    title = "Walk Speed",
     value = false,
     callback = function(v)
         WalkSpeedEnabled = v
@@ -254,9 +264,9 @@ ServerTab:Addtoggle({
         if not v and hum then hum.WalkSpeed = DEFAULT_WALKSPEED end
     end
 })
-ServerTab:AddInput({ Title = "walk speed", Value = "20", Callback = function(text) local n=tonumber(text) if n then WalkSpeedValue=n end end })
+ServerTab:AddInput({ Title = "Walk Speed", Value = "20", Callback = function(text) local n=tonumber(text) if n then WalkSpeedValue=n end end })
 ServerTab:Addtoggle({
-    title = "jump power",
+    title = "Jump Power",
     value = false,
     callback = function(v)
         JumpPowerEnabled = v
@@ -264,7 +274,7 @@ ServerTab:Addtoggle({
         if not v and hum then hum.UseJumpPower=true hum.JumpPower=DEFAULT_JUMPPOWER end
     end
 })
-ServerTab:AddInput({ Title = "jump power", Value = "50", Callback = function(text) local n=tonumber(text) if n then JumpPowerValue=n end end })
+ServerTab:AddInput({ Title = "Jump Power", Value = "50", Callback = function(text) local n=tonumber(text) if n then JumpPowerValue=n end end })
 
 -- TELEPORT
 TeleportTab:Addbutton({
@@ -308,12 +318,12 @@ TeleportTab:Addbutton({
     end
 })
 TeleportTab:Addtoggle({
-    title = "loop tp fling Murder",
+    title = "Loop TP Fling Murder",
     value = false,
     callback = function(v) LoopInsideMurder = v if v then StartLoopInside("Murder") end end
 })
 TeleportTab:Addtoggle({
-    title = "loop tp fling Sheriff",
+    title = "Loop TP Fling Sheriff",
     value = false,
     callback = function(v) LoopInsideSheriff = v if v then StartLoopInside("Sheriff") end end
 })
