@@ -2,7 +2,7 @@ local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/SCRIP
 
 local window = library:window({
     title = "Renux hub",
-    desc = "v1.0",
+    desc = "v1.1",
     transparent = 0.15,
     theme = "fire",
     autoshow = false,
@@ -68,6 +68,9 @@ local antiLagEnabled = false
 local waterNoDamageEnabled = false
 local antiLagConn = nil
 local waterConn = nil
+
+-- Kordinat target pengganti Trigger Part
+local targetPos = Vector3.new(-56, -359, 9495)
 
 -- // REJOIN & SERVER HOP
 local function rejoinServer()
@@ -191,13 +194,6 @@ local function findDarknessParts()
     return filtered
 end
 
-local function findTriggerPart()
-    for _, v in ipairs(workspace:GetDescendants()) do
-        if v:IsA("BasePart") and v.Name:lower():find("trigger") then return v end
-    end
-    return nil
-end
-
 local function teleportTo(pos)
     local char = player.Character
     if char and char:FindFirstChild("HumanoidRootPart") then
@@ -271,7 +267,6 @@ local function startFarm()
             if farmMode == "tween" then
                 local firstPart = darknessParts[1]
                 local lastPart = darknessParts[#darknessParts]
-                local trigger = findTriggerPart()
                 local platform = Instance.new("Part")
                 platform.Name = "Renux_TWEEN_Platform"
                 platform.Size = Vector3.new(14, 1, 14)
@@ -305,8 +300,8 @@ local function startFarm()
                 if not autoFarmEnabled or hasReachedTrigger then continue end
                 task.wait(0.2)
                 clearTpParts()
-                if trigger and autoFarmEnabled then
-                    for j = 1, 3 do teleportTo(trigger.Position + Vector3.new(0, 3, 0)) task.wait(0.3) end
+                if autoFarmEnabled then
+                    for j = 1, 3 do teleportTo(targetPos + Vector3.new(0, 3, 0)) task.wait(0.3) end
                     hasReachedTrigger = true
                     break
                 end
@@ -333,12 +328,9 @@ local function startFarm()
                     task.wait(tpDelay)
                 end
                 if not autoFarmEnabled or hasReachedTrigger then continue end
-                local trigger = findTriggerPart()
-                if trigger then
-                    for j = 1, 3 do teleportTo(trigger.Position + Vector3.new(0, 3, 0)) task.wait(0.3) end
-                    hasReachedTrigger = true
-                    break
-                end
+                for j = 1, 3 do teleportTo(targetPos + Vector3.new(0, 3, 0)) task.wait(0.3) end
+                hasReachedTrigger = true
+                break
             end
         end
     end)
@@ -459,8 +451,7 @@ task.spawn(function()
     while true do
         task.wait(0.5)
         if autoFarmEnabled and not hasReachedTrigger and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            local trigger = findTriggerPart()
-            if trigger and (player.Character.HumanoidRootPart.Position - trigger.Position).Magnitude < 15 then
+            if (player.Character.HumanoidRootPart.Position - targetPos).Magnitude < 15 then
                 hasReachedTrigger = true
                 clearTpParts()
             end
@@ -506,7 +497,6 @@ end
 
 local function hookSound(soundObj)
     if not soundObj:IsA("Sound") then return end
-    -- kalo lagi playing pas di hook, langsung kehitung ada suara
     if soundObj.IsPlaying then
         soundDetected = true
     end
@@ -543,7 +533,6 @@ local function startPostTriggerSoundCheck()
             task.wait(0.1)
             elapsed += 0.1
 
-            -- double check: kalau ada sound IsPlaying di interval ini, hitung ada
             if not soundDetected then
                 for _, v in ipairs(workspace:GetDescendants()) do
                     if v:IsA("Sound") and v.IsPlaying then
@@ -555,7 +544,6 @@ local function startPostTriggerSoundCheck()
 
             if soundDetected then break end
             if not hasReachedTrigger then
-                -- udah ke reset dari tempat lain, batalin cek
                 clearSoundListeners()
                 soundCheckActive = false
                 return
@@ -565,10 +553,8 @@ local function startPostTriggerSoundCheck()
         if hasReachedTrigger then
             if soundDetected then
                 -- ada suara = ga ngapa-ngapain, biarin hasReachedTrigger tetap true
-                -- print("[Renux] Trigger + Suara terdeteksi, farm selesai")
             else
                 -- ga ada suara = reset character langsung
-                -- print("[Renux] Trigger tapi ga ada suara, reset character")
                 resetCharacterNow()
             end
         end
