@@ -1,7 +1,7 @@
 local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/SCRIPTHUB-dev-god/User-Interface/refs/heads/main/library/fire-ui.lua"))()
 local window = library:window({
     title = "Renux hub",
-    desc = "v1.3",
+    desc = "v1.2",
     transparent = 0.15,
     theme = "fire",
     autoshow = false,
@@ -78,9 +78,6 @@ local function HasWeapon(plr)
     local bp=plr:FindFirstChild("Backpack")
     local char=plr.Character
     return HasTool(sg,"Knife") or HasTool(bp,"Knife") or HasTool(char,"Knife") or HasTool(sg,"Gun") or HasTool(bp,"Gun") or HasTool(char,"Gun")
-end
-local function HasGun(plr)
-    return HasTool(plr:FindFirstChild("StarterGear"),"Gun") or HasTool(plr:FindFirstChild("Backpack"),"Gun") or HasTool(plr.Character,"Gun")
 end
 local function IsGameStarted()
     for _,plr in pairs(Players:GetPlayers()) do
@@ -200,12 +197,6 @@ RunService:BindToRenderStep("RenuxAimbotBody",Enum.RenderPriority.Camera.Value+1
         CurrentLockedPlayer=nil
         return
     end
-    if not HasWeapon(LocalPlayer) then
-        AimbotBody=false
-        CurrentLockedPlayer=nil
-        library:Notification({title="aimbot",desc="need knife or gun to enable",duration=2})
-        return
-    end
     local cam=workspace.CurrentCamera
     local myChar=LocalPlayer.Character
     if not cam or not myChar then return end
@@ -218,8 +209,6 @@ RunService:BindToRenderStep("RenuxAimbotBody",Enum.RenderPriority.Camera.Value+1
     params.FilterDescendantsInstances=ignoreList
     local best=nil
     local bestDist=math.huge
-    local myHasGun=HasGun(LocalPlayer)
-    local myHasKnife=HasKnife(LocalPlayer)
     for _,plr in pairs(Players:GetPlayers()) do
         if plr==LocalPlayer then continue end
         local char=plr.Character
@@ -228,19 +217,11 @@ RunService:BindToRenderStep("RenuxAimbotBody",Enum.RenderPriority.Camera.Value+1
         if not tHrp or not tHum or tHum.Health<=0 then continue end
         local role=GetCurrentRole(plr)
         local allowed=false
-        if myHasGun and not myHasKnife then
-            if role=="Murder" then allowed=true end
-        elseif myHasKnife and not myHasGun then
-            if role=="Sheriff" or role==nil then allowed=true end
-        elseif myHasGun and myHasKnife then
-            if role=="Murder" or role=="Sheriff" or role==nil then allowed=true end
-        else
-            for _,sel in ipairs(SelectedAimRoles) do
-                local s=string.lower(sel)
-                if s=="murder" and role=="Murder" then allowed=true end
-                if s=="sheriff" and role=="Sheriff" then allowed=true end
-                if (s=="inconect" or s=="inocent" or s=="innocent") and role==nil then allowed=true end
-            end
+        for _,sel in ipairs(SelectedAimRoles) do
+            local s=string.lower(sel)
+            if s=="murder" and role=="Murder" then allowed=true end
+            if s=="sheriff" and role=="Sheriff" then allowed=true end
+            if (s=="inconect" or s=="inocent" or s=="innocent") and role==nil then allowed=true end
         end
         if not allowed then continue end
         local origin=cam.CFrame.Position
@@ -560,14 +541,7 @@ MainTab:AddInput({Title="Avoid Radius",Value="25",Callback=function(t) local n=t
 MainTab:AddDivider()
 MainTab:Addtoggle({title="Auto Kill All",value=false,callback=function(v) AutoKill=v if v then StartAutoKill() end end})
 MainTab:Addtoggle({title="TP Lobby If No Tool",value=false,callback=function(v) AutoTPNoTool=v if v then StartAutoTPNoTool() end end})
-AimTab:Addtoggle({title="Aimbot",value=false,callback=function(v)
-    if v and not HasWeapon(LocalPlayer) then
-        library:Notification({title="aimbot",desc="need knife or gun to enable",duration=2})
-        AimbotBody=false
-        return
-    end
-    AimbotBody=v
-end})
+AimTab:Addtoggle({title="Aimbot",value=false,callback=function(v) AimbotBody=v end})
 AimTab:AddDropdown({Title="selected player",Values={"murder","sheriff","inconect"},Value={"murder"},Multi=true,Search=false,Callback=function(selected) SelectedAimRoles=selected end})
 ServerTab:Addtoggle({title="Noclip",value=false,callback=function(v) Noclip=v end})
 ServerTab:Addtoggle({title="Infinite Jump",value=false,callback=function(v) InfiniteJump=v end})
