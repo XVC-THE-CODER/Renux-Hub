@@ -1,7 +1,7 @@
 local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/SCRIPTHUB-dev-god/User-Interface/refs/heads/main/library/fire-ui.lua"))()
 local window = library:window({
     title = "Renux hub",
-    desc = "v1.2",
+    desc = "v1.3",
     transparent = 0.15,
     theme = "fire",
     autoshow = false,
