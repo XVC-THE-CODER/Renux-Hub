@@ -1,7 +1,7 @@
 local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/SCRIPTHUB-dev-god/User-Interface/refs/heads/main/library/fire-ui.lua"))()
 local window = library:window({
     title = "Renux hub",
-    desc = "v1.3",
+    desc = "v1.4",
     transparent = 0.15,
     theme = "fire",
     autoshow = false,
@@ -63,16 +63,15 @@ local InvisLoopConn=nil
 local LastCoinY=nil
 local LobbyPart=nil
 local LastSafeCF=nil
+local LastSafePart=nil
+local LastSafePartCF=nil
 local CoinPlatform=nil
 local CoinPlatformConn=nil
+local Fullbright=false
+local FullbrightConn=nil
+local StoredLighting={}
 pcall(function() RunService:UnbindFromRenderStep("RenuxESP") end)
 pcall(function() RunService:UnbindFromRenderStep("RenuxAimbotBody") end)
-
-RunService.Heartbeat:Connect(function()
-    local char = LocalPlayer.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    if hrp and hrp.Position.Y > 10 then LastSafeCF = hrp.CFrame end
-end)
 
 local function EnsureLobbyPart()
     local existing = Workspace:FindFirstChild("RenuxLobbyPart")
@@ -96,6 +95,44 @@ local function GetNearestPart(pos)
     end
     return nearest
 end
+
+-- [ANTI VOID BARU] deteksi part workspace di bawah player
+local function GetGroundResult()
+    local char = LocalPlayer.Character
+    if not char then return nil end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not hrp or not hum then return nil end
+    if hum.FloorMaterial == Enum.Material.Air then return nil end
+    local params = RaycastParams.new()
+    params.FilterType = Enum.RaycastFilterType.Blacklist
+    params.FilterDescendantsInstances = {char}
+    local result = Workspace:Raycast(hrp.Position, Vector3.new(0,-7,0), params)
+    if result and result.Instance then
+        if not result.Instance.CanCollide then return nil end
+        if not result.Instance.Anchored then return nil end
+        if result.Instance.Parent:FindFirstChildOfClass("Humanoid") then return nil end
+        if Players:GetPlayerFromCharacter(result.Instance.Parent) then return nil end
+        if result.Instance.Transparency >= 1 then return nil end
+        return result
+    end
+    return nil
+end
+
+-- [ANTI VOID BARU] save terus menerus kalo nginjak part, kalo ga injak berhenti save
+RunService.Heartbeat:Connect(function()
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    if hrp.Position.Y < -130 then return end -- jangan save kalo udah deket void
+    local ground = GetGroundResult()
+    if ground then
+        LastSafeCF = hrp.CFrame
+        LastSafePart = ground.Instance
+        LastSafePartCF = ground.Instance.CFrame
+    end
+    -- kalo ground == nil, auto save berhenti sampai nginjak lagi
+end)
 
 local function GetSpawnPart()
     for _, obj in ipairs(Workspace:GetDescendants()) do if obj:IsA("SpawnLocation") then return obj end end
@@ -126,15 +163,68 @@ local function StopCoinPlatform()
     if CoinPlatform then pcall(function() CoinPlatform:Destroy() end) CoinPlatform=nil end
 end
 
+local function SetFullbright(state)
+    if state then
+        StoredLighting.Brightness = Lighting.Brightness
+        StoredLighting.ClockTime = Lighting.ClockTime
+        StoredLighting.FogEnd = Lighting.FogEnd
+        StoredLighting.GlobalShadows = Lighting.GlobalShadows
+        StoredLighting.Ambient = Lighting.Ambient
+        StoredLighting.OutdoorAmbient = Lighting.OutdoorAmbient
+        FullbrightConn = RunService.RenderStepped:Connect(function()
+            Lighting.Brightness = 2
+            Lighting.ClockTime = 14
+            Lighting.FogEnd = 100000
+            Lighting.GlobalShadows = false
+            Lighting.Ambient = Color3.fromRGB(255,255,255)
+            Lighting.OutdoorAmbient = Color3.fromRGB(255,255,255)
+        end)
+    else
+        if FullbrightConn then FullbrightConn:Disconnect() FullbrightConn=nil end
+        if StoredLighting.Brightness then
+            Lighting.Brightness = StoredLighting.Brightness
+            Lighting.ClockTime = StoredLighting.ClockTime
+            Lighting.FogEnd = StoredLighting.FogEnd
+            Lighting.GlobalShadows = StoredLighting.GlobalShadows
+            Lighting.Ambient = StoredLighting.Ambient
+            if StoredLighting.OutdoorAmbient then
+                Lighting.OutdoorAmbient = StoredLighting.OutdoorAmbient
+            end
+        end
+    end
+end
+
 local function StartAntiVoid()
     task.spawn(function()
         while AntiVoid do
-            local char = LocalPlayer.Character local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            local char = LocalPlayer.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
             if hrp and hrp.Position.Y < -150 then
-                if LastSafeCF then pcall(function() hrp.CFrame = LastSafeCF + Vector3.new(0,5,0) end)
-                else local nearest = GetNearestPart(hrp.Position) if nearest then pcall(function() hrp.CFrame = nearest.CFrame + Vector3.new(0,5,0) end) else local lp = EnsureLobbyPart() pcall(function() hrp.CFrame = lp.CFrame + Vector3.new(0,5,0) end) end end
+                pcall(function()
+                    hrp.AssemblyLinearVelocity = Vector3.new(0,0,0)
+                    hrp.Velocity = Vector3.new(0,0,0)
+                end)
+                -- TP ke koordinat save terakhir sebelum auto save berhenti
+                if LastSafeCF then
+                    pcall(function()
+                        hrp.CFrame = LastSafeCF + Vector3.new(0,5,0)
+                    end)
+                elseif LastSafePart and LastSafePart.Parent and LastSafePartCF then
+                    pcall(function()
+                        hrp.CFrame = LastSafePartCF + Vector3.new(0,5,0)
+                    end)
+                else
+                    local nearest = GetNearestPart(hrp.Position)
+                    if nearest then
+                        pcall(function() hrp.CFrame = nearest.CFrame + Vector3.new(0,5,0) end)
+                    else
+                        local lp = EnsureLobbyPart()
+                        pcall(function() hrp.CFrame = lp.CFrame + Vector3.new(0,5,0) end)
+                    end
+                end
+                task.wait(0.5)
             end
-            task.wait(0.15)
+            task.wait(0.1)
         end
     end)
 end
@@ -170,6 +260,7 @@ local function HasTool(c,n) if not c then return false end for _,t in pairs(c:Ge
 local function IsInPlayerChar(obj) for _,plr in pairs(Players:GetPlayers()) do if plr.Character and obj:IsDescendantOf(plr.Character) then return true end end return false end
 local function IsPlayerAlive(p) if not p.Character then return false end local hum=p.Character:FindFirstChildOfClass("Humanoid") if not hum then return false end return hum.Health>0 end
 local function GetCurrentRole(p) local sg=p:FindFirstChild("StarterGear") local bp=p:FindFirstChild("Backpack") local char=p.Character if HasTool(sg,"Knife") or HasTool(bp,"Knife") or HasTool(char,"Knife") then return "Murder" elseif HasTool(sg,"Gun") or HasTool(bp,"Gun") or HasTool(char,"Gun") then return "Sheriff" end return nil end
+local function HasKnife(p) return GetCurrentRole(p) == "Murder" end
 local function HasWeapon(plr) local sg=plr:FindFirstChild("StarterGear") local bp=plr:FindFirstChild("Backpack") local char=plr.Character return HasTool(sg,"Knife") or HasTool(bp,"Knife") or HasTool(char,"Knife") or HasTool(sg,"Gun") or HasTool(bp,"Gun") or HasTool(char,"Gun") end
 local function IsGameStarted() for _,plr in pairs(Players:GetPlayers()) do if plr~=LocalPlayer then local r=GetCurrentRole(plr) if r=="Murder" or r=="Sheriff" then return true end end end return false end
 local function GetTracer(p) if Tracers[p] then return Tracers[p] end local t=Drawing.new("Line") t.Visible=false t.Thickness=2 t.Transparency=1 Tracers[p]=t return t end
@@ -284,7 +375,6 @@ local function DoAntiLag()
     end)
 end
 
--- TWEEN LAMBAT
 local function GetCoinTweenTime(dist)
     if dist < 12 then return 1.2
     elseif dist < 25 then return 1.6
@@ -446,6 +536,7 @@ ServerTab:Addtoggle({title="Noclip",value=false,callback=function(v) Noclip=v en
 ServerTab:Addtoggle({title="Infinite Jump",value=false,callback=function(v) InfiniteJump=v end})
 ServerTab:AddDivider()
 ServerTab:Addtoggle({title="X-ray",value=false,callback=function(v) Xray=v SetXray(v) end})
+ServerTab:Addtoggle({title="Fullbright",value=false,callback=function(v) Fullbright=v SetFullbright(v) end})
 ServerTab:Addtoggle({title="Invisible",value=false,callback=function(v) SetInvisible(v) end})
 ServerTab:AddDivider()
 ServerTab:Addtoggle({title="Anti Lag",value=false,callback=function(v) AntiLag=v if v then DoAntiLag() library:Notification({title="Anti Lag",desc="small parts, textures, effects, accessories removed",duration=3}) end end})
