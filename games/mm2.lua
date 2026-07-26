@@ -25,6 +25,7 @@ local SheriffESP=false
 local InconectESP=false
 local ESPDistance=500
 local AutoCoin=false
+local CoinTweenSpeed=1.2
 local AvoidMurder=false
 local AvoidRadius=25
 local AutoKill=false
@@ -33,6 +34,7 @@ local LoopInsideMurder=false
 local LoopInsideSheriff=false
 local AimbotBody=false
 local GunSpinEnabled=false
+local GunSpinConn=nil
 local FreezeMurder=false
 local SelectedAimRoles={"murder"}
 local CurrentLockedPlayer=nil
@@ -60,7 +62,6 @@ local InvisiblePart=nil
 local CloneChar=nil
 local OriginalChar=nil
 local InvisLoopConn=nil
-local LastCoinY=nil
 local LobbyPart=nil
 local LastSafeCF=nil
 local LastSafePart=nil
@@ -96,7 +97,6 @@ local function GetNearestPart(pos)
     return nearest
 end
 
--- [ANTI VOID BARU] deteksi part workspace di bawah player
 local function GetGroundResult()
     local char = LocalPlayer.Character
     if not char then return nil end
@@ -119,19 +119,17 @@ local function GetGroundResult()
     return nil
 end
 
--- [ANTI VOID BARU] save terus menerus kalo nginjak part, kalo ga injak berhenti save
 RunService.Heartbeat:Connect(function()
     local char = LocalPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
-    if hrp.Position.Y < -130 then return end -- jangan save kalo udah deket void
+    if hrp.Position.Y < -130 then return end
     local ground = GetGroundResult()
     if ground then
         LastSafeCF = hrp.CFrame
         LastSafePart = ground.Instance
         LastSafePartCF = ground.Instance.CFrame
     end
-    -- kalo ground == nil, auto save berhenti sampai nginjak lagi
 end)
 
 local function GetSpawnPart()
@@ -144,18 +142,6 @@ local function EnsureCoinPlatform()
     if CoinPlatform and CoinPlatform.Parent then return CoinPlatform end
     local p = Instance.new("Part") p.Name = "RenuxCoinPlatform" p.Size = Vector3.new(10, 1, 10)
     p.Transparency = 1 p.Anchored = true p.CanCollide = true p.Parent = Workspace CoinPlatform = p return p
-end
-
-local function StartCoinPlatformFollow()
-    if CoinPlatformConn then return end
-    local platform = EnsureCoinPlatform()
-    CoinPlatformConn = RunService.Heartbeat:Connect(function()
-        local char = LocalPlayer.Character
-        local hrp = char and char:FindFirstChild("HumanoidRootPart")
-        if hrp and AutoCoin and platform.Parent then
-            pcall(function() platform.CFrame = CFrame.new(hrp.Position.X, hrp.Position.Y - 3.5, hrp.Position.Z) end)
-        end
-    end)
 end
 
 local function StopCoinPlatform()
@@ -204,15 +190,10 @@ local function StartAntiVoid()
                     hrp.AssemblyLinearVelocity = Vector3.new(0,0,0)
                     hrp.Velocity = Vector3.new(0,0,0)
                 end)
-                -- TP ke koordinat save terakhir sebelum auto save berhenti
                 if LastSafeCF then
-                    pcall(function()
-                        hrp.CFrame = LastSafeCF + Vector3.new(0,5,0)
-                    end)
+                    pcall(function() hrp.CFrame = LastSafeCF + Vector3.new(0,5,0) end)
                 elseif LastSafePart and LastSafePart.Parent and LastSafePartCF then
-                    pcall(function()
-                        hrp.CFrame = LastSafePartCF + Vector3.new(0,5,0)
-                    end)
+                    pcall(function() hrp.CFrame = LastSafePartCF + Vector3.new(0,5,0) end)
                 else
                     local nearest = GetNearestPart(hrp.Position)
                     if nearest then
@@ -345,7 +326,7 @@ RunService:BindToRenderStep("RenuxAimbotBody",Enum.RenderPriority.Camera.Value+1
         local vel=best.hrp.AssemblyLinearVelocity if vel.Magnitude<1 then vel=best.hrp.Velocity end
         local predicted=best.part.Position + vel * PredictionTime
         cam.CFrame=CFrame.new(cam.CFrame.Position,predicted)
-        library:Notification({title="aimbot",desc=best.plr.Name.." locked ["..best.part.Name.."] + 0.24 pred",duration=2})
+        library:Notification({title="aimbot",desc=best.plr.Name.." locked ["..best.part.Name.."] + 0.14 pred",duration=2})
     end
 end)
 
@@ -353,6 +334,7 @@ RunService.Stepped:Connect(function()
     if Noclip and LocalPlayer.Character then for _,v in pairs(LocalPlayer.Character:GetDescendants()) do if v:IsA("BasePart") and v.CanCollide then v.CanCollide=false end end end
     local hum=LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") if hum then if WalkSpeedEnabled then hum.WalkSpeed=WalkSpeedValue end if JumpPowerEnabled then hum.UseJumpPower=true hum.JumpPower=JumpPowerValue end end
 end)
+
 local function SetXray(s)
     if XrayThread then task.cancel(XrayThread) XrayThread=nil end
     if not s then for _,obj in ipairs(workspace:GetDescendants()) do if obj:IsA("BasePart") and not obj.Parent:FindFirstChildOfClass("Humanoid") and obj.Parent~=LocalPlayer.Character then obj.LocalTransparencyModifier=0 end end return end
@@ -363,6 +345,7 @@ local function SetXray(s)
         for i,part in ipairs(parts) do if not Xray then break end pcall(function() part.LocalTransparencyModifier=0.7 end) if i%30==0 then task.wait(0.05) end end
     end)
 end
+
 local function DoAntiLag()
     task.spawn(function()
         for _,v in ipairs(workspace:GetDescendants()) do if not AntiLag then break end pcall(function()
@@ -376,52 +359,104 @@ local function DoAntiLag()
 end
 
 local function GetCoinTweenTime(dist)
-    if dist < 12 then return 1.2
-    elseif dist < 25 then return 1.6
-    else return 2.2 end
+    local speed = CoinTweenSpeed
+    if speed <= 0 then speed = 0.1 end
+    local t = dist / (speed * 10)
+    return math.clamp(t, 0.3, 2.2)
 end
 
-local function StiffCoinTween(hrp, targetPos, isSameY)
-    local murderHRP=GetRoleHRP("Murder") if murderHRP and (targetPos-murderHRP.Position).Magnitude<30 then return false end
-    local startPos = hrp.Position local endPos = targetPos
-    if not isSameY and endPos.Y < startPos.Y - 3 then
-        local downPos = Vector3.new(startPos.X, endPos.Y + 1.5, startPos.Z)
-        local distDown = (startPos - downPos).Magnitude
-        local tDown = GetCoinTweenTime(distDown)
-        local tweenDown = TweenService:Create(hrp, TweenInfo.new(tDown, Enum.EasingStyle.Linear), {CFrame = CFrame.new(downPos)})
-        tweenDown:Play() tweenDown.Completed:Wait() task.wait(0.05)
-    end
-    murderHRP=GetRoleHRP("Murder") if murderHRP and (endPos-murderHRP.Position).Magnitude<30 then return false end
-    local finalPos = endPos + Vector3.new(0, -2.5, 0)
-    local dist = (hrp.Position - finalPos).Magnitude
+local function StiffCoinTween(hrp, coinPart)
+    if not coinPart or not coinPart.Parent then return false end
+    if coinPart.Transparency >= 1 then return false end
+    local murderHRP=GetRoleHRP("Murder")
+    if murderHRP and (coinPart.Position-murderHRP.Position).Magnitude<30 then return false end
+    if (hrp.Position - coinPart.Position).Magnitude < 3 then return true end
+    local targetCF = CFrame.new(coinPart.Position + Vector3.new(0, 2, 0))
+    local dist = (hrp.Position - coinPart.Position).Magnitude
     local tFinal = GetCoinTweenTime(dist)
-    local tween = TweenService:Create(hrp, TweenInfo.new(tFinal, Enum.EasingStyle.Linear), {CFrame = CFrame.new(finalPos)})
+    local tween = TweenService:Create(hrp, TweenInfo.new(tFinal, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {CFrame = targetCF})
     tween:Play()
-    local aborted=false local conn=RunService.Heartbeat:Connect(function() local mHRP=GetRoleHRP("Murder") if mHRP and (hrp.Position-mHRP.Position).Magnitude<20 then aborted=true tween:Cancel() end end)
-    tween.Completed:Wait() conn:Disconnect() if aborted then return false end return true
+    local aborted=false
+    local lastScan=0
+    local conn
+    conn=RunService.Heartbeat:Connect(function()
+        if not coinPart.Parent or coinPart.Transparency >= 1 then
+            aborted=true
+            pcall(function() tween:Cancel() end)
+            if conn then conn:Disconnect() end
+            return
+        end
+        local mHRP=GetRoleHRP("Murder")
+        if mHRP and (hrp.Position-mHRP.Position).Magnitude < 20 then
+            aborted=true
+            pcall(function() tween:Cancel() end)
+            if conn then conn:Disconnect() end
+            return
+        end
+        if tick() - lastScan < 0.25 then return end
+        lastScan = tick()
+        local closestDist = (hrp.Position - coinPart.Position).Magnitude
+        for _, obj in ipairs(Workspace:GetDescendants()) do
+            if obj ~= coinPart and obj:IsA("BasePart") and obj.Name:lower():find("coin") and not obj.Name:lower():find("visual") and obj.Transparency < 1 and not IsInPlayerChar(obj) then
+                if mHRP and (obj.Position - mHRP.Position).Magnitude < 30 then continue end
+                local d = (hrp.Position - obj.Position).Magnitude
+                if d < closestDist - 10 then
+                    aborted=true
+                    pcall(function() tween:Cancel() end)
+                    break
+                end
+            end
+        end
+        if aborted and conn then conn:Disconnect() end
+    end)
+    tween.Completed:Wait()
+    if conn then conn:Disconnect() end
+    return not aborted
 end
 
 local function StartCoinTP()
     task.spawn(function()
-        while AutoCoin do
-            local char=LocalPlayer.Character local hrp=char and char:FindFirstChild("HumanoidRootPart")
-            if not hrp then task.wait(0.5) continue end
-            local allCoins={} for _,obj in ipairs(workspace:GetDescendants()) do if obj:IsA("BasePart") and obj.Name:lower():find("coin") and not obj.Name:lower():find("visual") and not IsInPlayerChar(obj) then table.insert(allCoins,obj) end end
-            if #allCoins==0 then StopCoinPlatform() task.wait(1) continue end
-            StartCoinPlatformFollow()
-            table.sort(allCoins,function(a,b) return (hrp.Position-a.Position).Magnitude < (hrp.Position-b.Position).Magnitude end)
-            local center=allCoins[1] local lahan={} for _,c in ipairs(allCoins) do if (c.Position-center.Position).Magnitude<=65 then table.insert(lahan,c) end end
-            for _,coin in ipairs(lahan) do
-                if not AutoCoin then break end if not coin.Parent or not hrp.Parent then continue end
-                local mHRP=GetRoleHRP("Murder") if mHRP and (coin.Position-mHRP.Position).Magnitude<30 then continue end
-                local isSameY = LastCoinY and math.abs(coin.Position.Y - LastCoinY) < 2
-                local ok=StiffCoinTween(hrp, coin.Position, isSameY)
-                if ok then LastCoinY = coin.Position.Y end
-                if not ok then task.wait(0.1) continue end task.wait(0.08)
-            end
-            task.wait(0.25)
-        end
         StopCoinPlatform()
+        local lastCoinPos = nil
+        while AutoCoin do
+            local char=LocalPlayer.Character
+            local hrp=char and char:FindFirstChild("HumanoidRootPart")
+            if not hrp then task.wait(0.5) continue end
+            local allCoins={}
+            for _,obj in ipairs(Workspace:GetDescendants()) do
+                if obj:IsA("BasePart") and obj.Name:lower():find("coin") and not obj.Name:lower():find("visual") and obj.Transparency < 1 and not IsInPlayerChar(obj) then
+                    table.insert(allCoins,obj)
+                end
+            end
+            if #allCoins==0 then task.wait(1) continue end
+            local validCoins={}
+            local mHRP=GetRoleHRP("Murder")
+            for _,c in ipairs(allCoins) do
+                if not (mHRP and (c.Position - mHRP.Position).Magnitude < 30) then
+                    table.insert(validCoins, c)
+                end
+            end
+            if #validCoins == 0 then task.wait(0.3) continue end
+            table.sort(validCoins,function(a,b) return (hrp.Position-a.Position).Magnitude < (hrp.Position-b.Position).Magnitude end)
+            local nearest = validCoins[1]
+            if not nearest or not nearest.Parent or nearest.Transparency >= 1 then task.wait(0.2) continue end
+            if lastCoinPos and (nearest.Position - lastCoinPos).Magnitude < 2 and (hrp.Position - nearest.Position).Magnitude < 5 then
+                task.wait(0.28)
+                if #validCoins > 1 then
+                    nearest = validCoins[2]
+                    if nearest.Transparency >= 1 then continue end
+                else
+                    continue
+                end
+            end
+            local ok = StiffCoinTween(hrp, nearest)
+            if ok then
+                lastCoinPos = nearest.Position
+                task.wait(0.28)
+            else
+                task.wait(0.1)
+            end
+        end
     end)
 end
 
@@ -494,16 +529,24 @@ local function StartLoopInside(role)
         local hum=LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") if hum then hum.PlatformStand=false hum.Sit=false end
     end)
 end
+
 local function StartGunSpin()
-    task.spawn(function()
-        while GunSpinEnabled do
-            local char=LocalPlayer.Character local hrp=char and char:FindFirstChild("HumanoidRootPart") local murderHRP=GetRoleHRP("Murder")
-            if not hrp or not murderHRP then task.wait(0.3) continue end
-            local behindPos = murderHRP.Position - murderHRP.CFrame.LookVector * 35 + Vector3.new(0,2,0)
-            pcall(function() hrp.CFrame = CFrame.new(behindPos, murderHRP.Position) end) task.wait(0.22)
-        end
+    if GunSpinConn then GunSpinConn:Disconnect() GunSpinConn=nil end
+    GunSpinConn = RunService.Heartbeat:Connect(function()
+        if not GunSpinEnabled then return end
+        local char = LocalPlayer.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        local murderHRP = GetRoleHRP("Murder")
+        if not hrp or not murderHRP or not murderHRP.Parent then return end
+        local behindPos = murderHRP.Position - murderHRP.CFrame.LookVector * 35 + Vector3.new(0,0.5,0)
+        pcall(function()
+            hrp.AssemblyLinearVelocity = Vector3.new(0,0,0)
+            hrp.Velocity = Vector3.new(0,0,0)
+            hrp.CFrame = CFrame.new(behindPos, murderHRP.Position)
+        end)
     end)
 end
+
 local function StartFreezeMurder()
     task.spawn(function()
         while FreezeMurder do
@@ -522,6 +565,7 @@ MainTab:Addtoggle({title="ESP Inconect",value=false,callback=function(v) Inconec
 MainTab:AddInput({Title="ESP Distance",Value="500",Callback=function(t) local n=tonumber(t) if n then ESPDistance=n end end})
 MainTab:AddDivider()
 MainTab:Addtoggle({title="Auto Collect Coin (kick risk)",value=false,callback=function(v) AutoCoin=v if v then StartCoinTP() else StopCoinPlatform() end end})
+MainTab:AddInput({Title="Coin Tween Speed",Value="1.2",Callback=function(t) local n=tonumber(t) if n then CoinTweenSpeed=n end end})
 MainTab:Addtoggle({title="Avoid Murder",value=false,callback=function(v) AvoidMurder=v if v then StartAvoidMurder() end end})
 MainTab:AddInput({Title="Avoid Radius",Value="25",Callback=function(t) local n=tonumber(t) if n then AvoidRadius=n end end})
 MainTab:AddDivider()
@@ -529,7 +573,7 @@ MainTab:Addtoggle({title="Auto Kill All",value=false,callback=function(v) AutoKi
 MainTab:Addtoggle({title="TP save zone",value=false,callback=function(v) AutoTPNoTool=v if v then StartAutoTPNoTool() end end})
 
 AimTab:Addtoggle({title="Aimbot",value=false,callback=function(v) AimbotBody=v if not v then CurrentLockedPlayer=nil CurrentLockedPart=nil end end})
-AimTab:Addtoggle({title="tween bihind murder",value=false,callback=function(v) GunSpinEnabled=v if v then StartGunSpin() end end})
+AimTab:Addtoggle({title="tween bihind murder",value=false,callback=function(v) GunSpinEnabled=v if v then StartGunSpin() else if GunSpinConn then GunSpinConn:Disconnect() GunSpinConn=nil end end end})
 AimTab:AddDropdown({Title="selected player",Values={"murder","sheriff","inconect"},Value={"murder"},Multi=true,Search=false,Callback=function(selected) SelectedAimRoles=selected end})
 
 ServerTab:Addtoggle({title="Noclip",value=false,callback=function(v) Noclip=v end})
