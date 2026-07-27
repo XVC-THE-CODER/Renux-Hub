@@ -77,6 +77,7 @@ local CoinPlatform=nil
 local CoinPlatformConn=nil
 local FullbrightConn=nil
 local StoredLighting={}
+local SavedCollide={}
 pcall(function() RunService:UnbindFromRenderStep("RenuxESP") end)
 pcall(function() RunService:UnbindFromRenderStep("RenuxAimbotBody") end)
 
@@ -103,9 +104,29 @@ local function EnsureCoinPlatform()
     return p
 end
 
+local function DisableWorkspaceCollide()
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and obj.Anchored and obj.CanCollide and obj.Name ~= "RenuxLobbyPart" and obj.Name ~= "RenuxCoinPlatform" and obj.Name ~= "RenuxAnchor" then
+            if obj.Parent:FindFirstChildOfClass("Humanoid") then continue end
+            if Players:GetPlayerFromCharacter(obj.Parent) then continue end
+            if obj.Transparency >= 1 then continue end
+            if not SavedCollide[obj] then SavedCollide[obj] = true end
+            obj.CanCollide = false
+        end
+    end
+end
+
+local function RestoreWorkspaceCollide()
+    for part,_ in pairs(SavedCollide) do
+        if part and part.Parent then pcall(function() part.CanCollide = true end) end
+    end
+    SavedCollide = {}
+end
+
 local function StopCoinPlatform()
     if CoinPlatformConn then CoinPlatformConn:Disconnect() CoinPlatformConn=nil end
     if CoinPlatform then pcall(function() CoinPlatform:Destroy() end) CoinPlatform=nil end
+    RestoreWorkspaceCollide()
 end
 
 local function GetNearestPart(pos)
@@ -373,6 +394,7 @@ local function StartCoinTP()
         local platform = EnsureCoinPlatform()
         local hrp0 = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         if hrp0 then platform.CFrame = hrp0.CFrame end
+        DisableWorkspaceCollide()
         CoinPlatformConn = RunService.Heartbeat:Connect(function()
             local char = LocalPlayer.Character
             local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -380,7 +402,7 @@ local function StartCoinTP()
             if not AutoCoin then return end
             if not CoinPlatform then return end
             pcall(function()
-                hrp.CFrame = CoinPlatform.CFrame * CFrame.Angles(math.rad(90), 0, math.rad(90))
+                hrp.CFrame = platform.CFrame * CFrame.Angles(math.rad(90), 0, math.rad(90))
                 hrp.AssemblyLinearVelocity = Vector3.new(0,0,0)
                 hrp.Velocity = Vector3.new(0,0,0)
             end)
@@ -400,8 +422,19 @@ local function StartCoinTP()
                 continue
             end
             table.sort(list, function(a,b) return (platform.Position - a.Position).Magnitude < (platform.Position - b.Position).Magnitude end)
+            local murderHRP = GetRoleHRP("Murder")
+            local murderPos = murderHRP and murderHRP.Position or nil
             local targetCoin = list[1]
-            if not targetCoin or not targetCoin.Parent then task.wait(0.2) continue end
+            local isDanger = false
+            if murderPos and (targetCoin.Position - murderPos).Magnitude < 30 then
+                isDanger = true
+                local safer = nil
+                for _, c in ipairs(list) do
+                    if (c.Position - murderPos).Magnitude > 45 then safer = c break end
+                end
+                if safer then targetCoin = safer end
+            end
+            if not targetCoin or not targetCoin.Parent then task.wait(0.1) continue end
             local targetCF = CFrame.new(targetCoin.Position + Vector3.new(0, -5, 0))
             local dist = (platform.Position - targetCF.Position).Magnitude
             local speed = CoinTweenSpeed
@@ -420,6 +453,7 @@ local function StartCoinTP()
                 local closestDist = (platform.Position - targetCoin.Position).Magnitude
                 for _, obj in ipairs(Workspace:GetDescendants()) do
                     if obj ~= targetCoin and obj:IsA("BasePart") and obj.Name:lower():find("coin") and not obj.Name:lower():find("visual") and obj.Transparency < 1 and not IsInPlayerChar(obj) then
+                        if murderPos and (obj.Position - murderPos).Magnitude < 25 then continue end
                         local d = (platform.Position - obj.Position).Magnitude
                         if d < closestDist - 1.5 then
                             aborted = true
@@ -433,15 +467,20 @@ local function StartCoinTP()
             tween:Play()
             tween.Completed:Wait()
             if conn then conn:Disconnect() end
-            if not aborted then
-                task.wait(0.26)
-                pcall(function() platform.CFrame = CFrame.new(targetCoin.Position + Vector3.new(0, 0, 0)) end)
-                task.wait(0.08)
-                pcall(function() platform.CFrame = CFrame.new(targetCoin.Position + Vector3.new(0, -4, 0)) end)
-                task.wait(0.05)
-            else
-                task.wait(0.05)
+            if aborted then task.wait(0.05) continue end
+            if not targetCoin.Parent or targetCoin.Transparency >= 1 then continue end
+            if isDanger then task.wait(0.8) else task.wait(0.28) end
+            if not targetCoin.Parent or targetCoin.Transparency >= 1 then continue end
+            local baseCF = CFrame.new(targetCoin.Position + Vector3.new(0, 0, 0))
+            pcall(function() platform.CFrame = baseCF end)
+            for deg = 0, 360, 40 do
+                if not targetCoin.Parent or targetCoin.Transparency >= 1 then break end
+                pcall(function() platform.CFrame = baseCF * CFrame.Angles(0, math.rad(deg), 0) end)
+                task.wait(0.02)
             end
+            if not targetCoin.Parent or targetCoin.Transparency >= 1 then continue end
+            pcall(function() platform.CFrame = CFrame.new(targetCoin.Position + Vector3.new(0, -4, 0)) end)
+            task.wait(0.06)
         end
         StopCoinPlatform()
     end)
