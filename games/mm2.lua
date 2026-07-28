@@ -78,6 +78,8 @@ local CoinPlatformConn=nil
 local FullbrightConn=nil
 local StoredLighting={}
 local SavedCollide={}
+local CoinWorkspaceConn=nil
+local KillCursorConn=nil
 pcall(function() RunService:UnbindFromRenderStep("RenuxESP") end)
 pcall(function() RunService:UnbindFromRenderStep("RenuxAimbotBody") end)
 
@@ -105,20 +107,43 @@ local function EnsureCoinPlatform()
 end
 
 local function DisableWorkspaceCollide()
+    if CoinWorkspaceConn then CoinWorkspaceConn:Disconnect() CoinWorkspaceConn=nil end
     for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and obj.Name:lower():find("coin") then continue end
         if obj:IsA("BasePart") and obj.Anchored and obj.CanCollide and obj.Name ~= "RenuxLobbyPart" and obj.Name ~= "RenuxCoinPlatform" and obj.Name ~= "RenuxAnchor" then
             if obj.Parent:FindFirstChildOfClass("Humanoid") then continue end
             if Players:GetPlayerFromCharacter(obj.Parent) then continue end
-            if obj.Transparency >= 1 then continue end
-            if not SavedCollide[obj] then SavedCollide[obj] = true end
+            if obj.Transparency >= 1 and obj.CanCollide == false then continue end
+            if not SavedCollide[obj] then SavedCollide[obj] = {Trans = obj.Transparency} end
             obj.CanCollide = false
+            obj.Transparency = 1
         end
     end
+    CoinWorkspaceConn = Workspace.DescendantAdded:Connect(function(obj)
+        if not AutoCoin then return end
+        if not obj:IsA("BasePart") then return end
+        if obj.Name:lower():find("coin") then return end
+        if obj.Name == "RenuxLobbyPart" or obj.Name == "RenuxCoinPlatform" or obj.Name == "RenuxAnchor" then return end
+        if not obj.Anchored then return end
+        if obj.Parent:FindFirstChildOfClass("Humanoid") then return end
+        if Players:GetPlayerFromCharacter(obj.Parent) then return end
+        task.wait(0.05)
+        if obj.CanCollide or obj.Transparency < 1 then
+            if not SavedCollide[obj] then SavedCollide[obj] = {Trans = obj.Transparency} end
+            pcall(function() obj.CanCollide = false obj.Transparency = 1 end)
+        end
+    end)
 end
 
 local function RestoreWorkspaceCollide()
-    for part,_ in pairs(SavedCollide) do
-        if part and part.Parent then pcall(function() part.CanCollide = true end) end
+    if CoinWorkspaceConn then CoinWorkspaceConn:Disconnect() CoinWorkspaceConn=nil end
+    for part,data in pairs(SavedCollide) do
+        if part and part.Parent then
+            pcall(function()
+                part.CanCollide = true
+                part.Transparency = data.Trans or 0
+            end)
+        end
     end
     SavedCollide = {}
 end
@@ -132,7 +157,7 @@ end
 local function GetNearestPart(pos)
     local nearest, minDist = nil, math.huge
     for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("BasePart") and obj.Anchored and obj.CanCollide and obj.Transparency < 1 and obj.Name ~= "RenuxLobbyPart" and obj.Name ~= "RenuxCoinPlatform" then
+        if obj:IsA("BasePart") and obj.Anchored and obj.Transparency < 1 and obj.Name ~= "RenuxLobbyPart" and obj.Name ~= "RenuxCoinPlatform" then
             if obj.Parent:FindFirstChildOfClass("Humanoid") then continue end
             if Players:GetPlayerFromCharacter(obj.Parent) then continue end
             local d = (obj.Position - pos).Magnitude
@@ -154,11 +179,11 @@ local function GetGroundResult()
     params.FilterDescendantsInstances = {char}
     local result = Workspace:Raycast(hrp.Position, Vector3.new(0,-7,0), params)
     if result and result.Instance then
-        if not result.Instance.CanCollide then return nil end
+        if not result.Instance.CanCollide and SavedCollide[result.Instance] == nil then return nil end
         if not result.Instance.Anchored then return nil end
         if result.Instance.Parent:FindFirstChildOfClass("Humanoid") then return nil end
         if Players:GetPlayerFromCharacter(result.Instance.Parent) then return nil end
-        if result.Instance.Transparency >= 1 then return nil end
+        if result.Instance.Transparency >= 1 and not SavedCollide[result.Instance] then return nil end
         return result
     end
     return nil
@@ -275,7 +300,8 @@ local function FindSafeSpot(origin,minDist,maxDist,ignoreMurderPos)
     for i=1,25 do
         local angle=math.random()*math.pi*2 local dist=math.random(minDist,maxDist) local offset=Vector3.new(math.cos(angle)*dist,0,math.sin(angle)*dist)
         local startPos=origin+offset+Vector3.new(0,60,0) local dir=Vector3.new(0,-150,0) local result=workspace:Raycast(startPos,dir,params)
-        if result and result.Instance and result.Instance.CanCollide then
+        if result and result.Instance then
+            if not result.Instance.CanCollide and SavedCollide[result.Instance]==nil then continue end
             local pos=result.Position+Vector3.new(0,3,0)
             if ignoreMurderPos then if (pos-ignoreMurderPos).Magnitude < AvoidRadius+5 then continue end end
             if result.Position.Y < origin.Y-25 then continue end
@@ -424,6 +450,11 @@ local function StartCoinTP()
             table.sort(list, function(a,b) return (platform.Position - a.Position).Magnitude < (platform.Position - b.Position).Magnitude end)
             local murderHRP = GetRoleHRP("Murder")
             local murderPos = murderHRP and murderHRP.Position or nil
+            if murderPos and (platform.Position - murderPos).Magnitude < 30 then
+                pcall(function() platform.CFrame = CFrame.new(murderPos + Vector3.new(0,100,0)) end)
+                task.wait(0.5)
+                continue
+            end
             local targetCoin = list[1]
             local isDanger = false
             if murderPos and (targetCoin.Position - murderPos).Magnitude < 30 then
@@ -438,7 +469,7 @@ local function StartCoinTP()
             local targetCF = CFrame.new(targetCoin.Position + Vector3.new(0, -5, 0))
             local dist = (platform.Position - targetCF.Position).Magnitude
             local speed = CoinTweenSpeed
-            if speed <= 0 then speed = 1.2 end
+            if speed <= 0 then speed = 3.2 end
             local t = math.clamp(dist / (speed * 6), 0.35, 1.4)
             local tween = TweenService:Create(platform, TweenInfo.new(t, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {CFrame = targetCF})
             local aborted = false
@@ -467,9 +498,9 @@ local function StartCoinTP()
             tween:Play()
             tween.Completed:Wait()
             if conn then conn:Disconnect() end
-            if aborted then task.wait(0.05) continue end
+            if aborted then task.wait(0.025) continue end
             if not targetCoin.Parent or targetCoin.Transparency >= 1 then continue end
-            if isDanger then task.wait(0.8) else task.wait(0.28) end
+            if isDanger then task.wait(0.4) else task.wait(0.16) end
             if not targetCoin.Parent or targetCoin.Transparency >= 1 then continue end
             local baseCF = CFrame.new(targetCoin.Position + Vector3.new(0, 0, 0))
             pcall(function() platform.CFrame = baseCF end)
@@ -516,26 +547,58 @@ end
 
 local function StartAutoKill()
     task.spawn(function()
+        local Camera = Workspace.CurrentCamera
+        pcall(function() UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter end)
+        if KillCursorConn then KillCursorConn:Disconnect() end
+        KillCursorConn = RunService.RenderStepped:Connect(function()
+            if not AutoKill then return end
+            pcall(function()
+                local center = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+                VirtualInputManager:SendMouseMoveEvent(center.X, center.Y, game)
+            end)
+        end)
         while AutoKill do
             local char=LocalPlayer.Character local hrp=char and char:FindFirstChild("HumanoidRootPart") local hum=char and char:FindFirstChildOfClass("Humanoid")
             if not hrp or not hum then task.wait(0.3) continue end
             local knife=LocalPlayer.Backpack:FindFirstChild("Knife") or char:FindFirstChild("Knife") if not knife then task.wait(0.5) continue end
             if knife.Parent~=char then hum:EquipTool(knife) task.wait(0.2) end
-            local candidates={} for _,plr in pairs(Players:GetPlayers()) do if plr==LocalPlayer then continue end local tChar=plr.Character local tHrp=tChar and tChar:FindFirstChild("HumanoidRootPart") local tHum=tChar and tChar:FindFirstChildOfClass("Humanoid") if tHrp and tHum and tHum.Health>0 then local dist=(hrp.Position-tHrp.Position).Magnitude if dist<=500 then table.insert(candidates,{plr=plr,hrp=tHrp,hum=tHum,char=tChar,dist=dist}) end end end
+            local candidates={}
+            for _,plr in pairs(Players:GetPlayers()) do
+                if plr==LocalPlayer then continue end
+                local tChar=plr.Character local tHrp=tChar and tChar:FindFirstChild("HumanoidRootPart") local tHum=tChar and tChar:FindFirstChildOfClass("Humanoid")
+                if tHrp and tHum and tHum.Health>0 then
+                    local role=GetCurrentRole(plr)
+                    local dist=(hrp.Position-tHrp.Position).Magnitude
+                    if dist<=500 then
+                        table.insert(candidates,{plr=plr,hrp=tHrp,hum=tHum,char=tChar,dist=dist,role=role})
+                    end
+                end
+            end
             if #candidates==0 then task.wait(0.5) continue end
-            table.sort(candidates,function(a,b) return a.dist<b.dist end)
+            table.sort(candidates,function(a,b)
+                if a.role=="Sheriff" and b.role~="Sheriff" then return true end
+                if b.role=="Sheriff" and a.role~="Sheriff" then return false end
+                return a.dist<b.dist
+            end)
             for _,data in ipairs(candidates) do
-                if not AutoKill then break end if not data.hum or data.hum.Health<=0 or not data.char.Parent then continue end
-                local tHrp=data.hrp local tHum=data.hum local loopCount=0
+                if not AutoKill then break end
+                if not data.hum or data.hum.Health<=0 or not data.char.Parent then continue end
+                local tHrp=data.hrp local tHum=data.hum
+                local startKill = tick()
                 while AutoKill and tHum and tHum.Health>0 and tHrp.Parent and data.char.Parent do
                     if not char or not hrp.Parent then break end
-                    local behindPos=tHrp.Position - tHrp.CFrame.LookVector*2.8 + Vector3.new(0,0.5,0) hrp.CFrame=CFrame.new(behindPos,tHrp.Position)
-                    local kTool=char:FindFirstChild("Knife") if kTool then kTool:Activate() ClickLeft() end task.wait(0.07) loopCount+=1 if loopCount>150 then break end
+                    if tick() - startKill > 1.45 then break end
+                    local behindPos = tHrp.Position - tHrp.CFrame.LookVector*2.8 + Vector3.new(0,0.5,0)
+                    hrp.CFrame=CFrame.new(behindPos,tHrp.Position)
+                    local kTool=char:FindFirstChild("Knife") if kTool then kTool:Activate() ClickLeft() end
+                    task.wait(0.07)
                 end
                 task.wait(0.08)
             end
             task.wait(0.1)
         end
+        if KillCursorConn then KillCursorConn:Disconnect() KillCursorConn=nil end
+        pcall(function() UserInputService.MouseBehavior = Enum.MouseBehavior.Default end)
     end)
 end
 
@@ -593,7 +656,7 @@ MainTab:AddDivider()
 MainTab:Addtoggle({title="Avoid Murder",value=AvoidMurder,callback=function(v) AvoidMurder=v SetSave("AvoidMurder",v) if v then StartAvoidMurder() end end})
 MainTab:AddInput({Title="Avoid Radius",Value=tostring(AvoidRadius),Callback=function(t) local n=tonumber(t) if n then AvoidRadius=n SetSave("AvoidRadius",n) end end})
 MainTab:AddDivider()
-MainTab:Addtoggle({title="Auto Kill All",value=AutoKill,callback=function(v) AutoKill=v SetSave("AutoKill",v) if v then StartAutoKill() end end})
+MainTab:Addtoggle({title="Auto Kill All",value=AutoKill,callback=function(v) AutoKill=v SetSave("AutoKill",v) if v then StartAutoKill() else if KillCursorConn then KillCursorConn:Disconnect() KillCursorConn=nil end pcall(function() UserInputService.MouseBehavior=Enum.MouseBehavior.Default end) end end})
 MainTab:Addtoggle({title="TP save zone",value=AutoTPNoTool,callback=function(v) AutoTPNoTool=v SetSave("TPSaveZone",v) if v then StartAutoTPNoTool() end end})
 AimTab:Addtoggle({title="Aimbot",value=AimbotBody,callback=function(v) AimbotBody=v SetSave("Aimbot",v) if not v then CurrentLockedPlayer=nil CurrentLockedPart=nil end end})
 AimTab:Addtoggle({title="tween bihind murder",value=GunSpinEnabled,callback=function(v) GunSpinEnabled=v SetSave("TweenBehindMurder",v) if v then StartGunSpin() else if GunSpinConn then GunSpinConn:Disconnect() GunSpinConn=nil end end end})
@@ -625,6 +688,7 @@ settingTab:Addbutton({title="Execute foxname hub",desc="this script not my scrip
 settingTab:Addbutton({title="Execute Fling",callback=function() loadstring(game:HttpGet("https://raw.githubusercontent.com/SCRIPTHUB-dev-god/exploit/refs/heads/main/fling/the-touch-fling.luau",true))() end})
 settingTab:AddDivider()
 settingTab:Addbutton({title="reload ui",callback=function() loadstring(game:HttpGet("https://raw.githubusercontent.com/XVC-THE-CODER/Renux-Hub/refs/heads/main/hub/loader.lua",true))()end})
+settingTab:Addbutton({title="anti fling",callback=function() loadstring(game:HttpGet("https://raw.githubusercontent.com/SCRIPTHUB-dev-god/main-scipt/refs/heads/main/byte/anti-fling.lua",true))()end})
 if AutoCoin then StartCoinTP() end
 if AvoidMurder then StartAvoidMurder() end
 if AutoKill then StartAutoKill() end
