@@ -1,6 +1,6 @@
 # Renux hub
 ```luau
-loadstring(game:HttpGet("https://raw.githubusercontent.com/XVC-THE-CODER/Renux-Hub/refs/heads/main/hub/loader.lua",true))()
+loadstring(game:HttpGet("https://github.com/XVC-THE-CODER/Renux-Hub/releases/download/v1.0.0/loader.lua",true))()
 ```
 ---
 **game support**
