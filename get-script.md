@@ -6,12 +6,12 @@ loadstring(game:HttpGet("https://github.com/XVC-THE-CODER/Renux-Hub/releases/lat
 **game support**
 [working]
 - build a boat for treasures 
-- murder mystery 2
+- flick (too op)
 - one tap
 - hide and seek extreme
 ---
 [need update]
-- nothing
+- murder mystery 2
 ---
 [next game]
 - evade
