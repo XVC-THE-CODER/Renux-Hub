@@ -4,6 +4,7 @@ local Workspace = game:GetService("Workspace")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local UserInputService = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
+local HttpService = game:GetService("HttpService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera
 local library = loadstring(game:HttpGet("https://github.com/SCRIPTHUB-dev-god/User-Interface/releases/latest/download/wave-ui.lua"))()
@@ -14,27 +15,29 @@ local window = library:CreateWindow({
 	info = false,
 	transparency = 0.12
 })
-window:AddTag({title = "script : noKey", canclicked = false, callback = function() end})
-window:AddTag({title = "made indonesia", canclicked = false, callback = function() end})
-window:SetMovingText("script version 1.0")
+window:AddTag({title = "keyless", canclicked = false, callback = function() end})
+window:AddTag({title = "made in indonesia", canclicked = false, callback = function() end})
+window:SetMovingText("script version 1.1")
 local InfoTab = library:CreateTab("Information")
 local Tab = library:CreateTab("Main")
 local MiscTab = library:CreateTab("Misc")
 local AimbotTab = library:CreateTab("Aimbot")
 local TrollTab = library:CreateTab("Troll")
-local infoLeftGroup = InfoTab:CreateGroupBox("Invite", "left", "close")
-local infoRightGroup = InfoTab:CreateGroupBox("Information", "right", "close")
+local SettingTab = library:CreateTab("Setting")
+local infoLeftGroup = InfoTab:CreateGroupBox("Invite", "left", "open")
+local infoRightGroup = InfoTab:CreateGroupBox("Information", "right", "open")
 local espGroup = Tab:CreateGroupBox("ESP", "left", "close")
 local killGroup = Tab:CreateGroupBox("Kill All", "right", "close")
 local coinGroup = Tab:CreateGroupBox("Coin Farm", "left", "close")
 local sheriffCounterGroup = Tab:CreateGroupBox("Sheriff Counter", "right", "close")
 local avoidGroup = Tab:CreateGroupBox("Avoid", "left", "close")
-local miscGroup = MiscTab:CreateGroupBox("opsion", "left", "close")
+local miscGroup = MiscTab:CreateGroupBox("Option", "left", "close")
 local movementGroup = MiscTab:CreateGroupBox("Movement", "right", "close")
 local teleportGroup = MiscTab:CreateGroupBox("Teleport", "left", "close")
 local utilityGroup = MiscTab:CreateGroupBox("Utility", "right", "close")
 local aimbotGroup = AimbotTab:CreateGroupBox("Aimbot", "allside", "close")
-local trollGroup = TrollTab:CreateGroupBox("fling Player", "allside", "close")
+local trollGroup = TrollTab:CreateGroupBox("Fling Player", "allside", "close")
+local uiGroup = SettingTab:CreateGroupBox("UI", "allside", "close")
 local murderEnabled, sheriffEnabled, innocentEnabled = false, false, false
 local espGunEnabled = false
 local killMode = "TP"
@@ -53,8 +56,11 @@ local lastSafeHeight = 45
 local mapHREnabled = false
 local mapHRGui, mapHRAutoSaveConn, mapHRSavedCFrame, mapHRTPing = nil, nil, nil, false
 local mapHRList = {"Pier","Beach Resort","Yacht","Bank 2","Bio Lab","Factory","Hospital 3","Hotel 2","House 2","Mansion 2","Military Base","nStudio","NSOffice","Office 3","Police Station","Research Facility","Workplace","Bank 1","Hospital 1","Hospital 2","Hotel 1","House 1","Mansion 1","Office 1","Office 2","Research Facility 1","Haunted House","Log Cabin","Workshop"}
+local function normalizeMapName(s)
+	return string.lower(tostring(s)):gsub("_",""):gsub(" ",""):gsub("-","")
+end
 local mapHRSet = {}
-for _, n in ipairs(mapHRList) do mapHRSet[string.lower(n)] = true end
+for _, n in ipairs(mapHRList) do mapHRSet[normalizeMapName(n)] = true end
 local avoidEnabled, avoidDistance, avoidConn = false, 40, nil
 local antiVoidEnabled, antiVoidConn, lastSafePos = false, nil, nil
 local safePlatformPart = nil
@@ -89,6 +95,54 @@ local startTime = tick()
 local fps = 0
 local frameCount = 0
 local lastFpsTick = tick()
+local autoSaveEnabled = false
+local ConfigFileName = "RenuxHub_MM2_Config.json"
+
+local function getCurrentConfig()
+	return {
+		murderEnabled = murderEnabled,
+		sheriffEnabled = sheriffEnabled,
+		innocentEnabled = innocentEnabled,
+		espGunEnabled = espGunEnabled,
+		killAuraEnabled = killAuraEnabled,
+		farmEnabled = farmEnabled,
+		farmSpeed = farmSpeed,
+		sheriffLoopEnabled = sheriffLoopEnabled,
+		mapHREnabled = mapHREnabled,
+		avoidEnabled = avoidEnabled,
+		avoidDistance = avoidDistance,
+		antiVoidEnabled = antiVoidEnabled,
+		walkSpeedEnabled = walkSpeedEnabled,
+		walkSpeedValue = walkSpeedValue,
+		jumpEnabled = jumpEnabled,
+		jumpValue = jumpValue,
+		noclipEnabled = noclipEnabled,
+		infJumpEnabled = infJumpEnabled,
+		xrayEnabled = xrayEnabled,
+		fullbrightEnabled = fullbrightEnabled,
+		aimbotRole = aimbotRole,
+		aimbotPrediction = aimbotPrediction,
+		aimbotEnabled = aimbotEnabled,
+		trollMurderEnabled = trollMurderEnabled,
+		trollSheriffEnabled = trollSheriffEnabled,
+		autoSaveEnabled = autoSaveEnabled,
+	}
+end
+local function saveConfig()
+	if not autoSaveEnabled then return end
+	if not writefile then return end
+	local ok, json = pcall(function() return HttpService:JSONEncode(getCurrentConfig()) end)
+	if ok then pcall(function() writefile(ConfigFileName, json) end) end
+end
+local function loadConfig()
+	if not isfile or not readfile then return nil end
+	if not isfile(ConfigFileName) then return nil end
+	local ok, content = pcall(function() return readfile(ConfigFileName) end)
+	if not ok then return nil end
+	local ok2, data = pcall(function() return HttpService:JSONDecode(content) end)
+	if ok2 and type(data)=="table" then return data end
+	return nil
+end
 
 RunService.RenderStepped:Connect(function()
 	frameCount += 1
@@ -123,6 +177,7 @@ local function setNoclip(state)
             end
         end
     end
+	if autoSaveEnabled then saveConfig() end
 end
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
@@ -280,17 +335,6 @@ local function getSafeAbovePos(murderHrp, murderChar)
 		end
 	end
 	return murderHrp.Position + Vector3.new(0,15,0), 15
-end
-local function findCollidableFloor()
-	local best, bestY = nil, -math.huge
-	for _, obj in ipairs(Workspace:GetDescendants()) do
-		if obj:IsA("BasePart") and obj.CanCollide and obj.Position.Y > 0 and obj.Size.X > obj.Size.Y and obj.Size.Z > obj.Size.Y and obj.Size.X >= 10 and obj.Size.Z >= 10 then
-			local isChar = false
-			for _, plr in ipairs(Players:GetPlayers()) do if plr.Character and obj:IsDescendantOf(plr.Character) then isChar = true break end end
-			if not isChar and obj.Position.Y > bestY then best = obj bestY = obj.Position.Y end
-		end
-	end
-	return best
 end
 local function createESP(plr)
 	if espData[plr] then return end
@@ -459,6 +503,16 @@ local function ensureRagdoll()
 		pcall(function() hum:ChangeState(Enum.HumanoidStateType.FallingDown) task.wait(0.05) hum:ChangeState(Enum.HumanoidStateType.Physics) end)
 	end
 end
+local function findLobbySpawn()
+	for _, obj in ipairs(Workspace:GetDescendants()) do if obj:IsA("SpawnLocation") then return obj end end
+	for _, name in ipairs({"Spawn","SpawnPoint","SpawnPart","LobbySpawn","SpawnLocation"}) do
+		for _, obj in ipairs(Workspace:GetDescendants()) do
+			if obj:IsA("BasePart") and string.lower(obj.Name) == string.lower(name) then return obj end
+		end
+	end
+	for _, obj in ipairs(Workspace:GetDescendants()) do if obj:IsA("BasePart") and string.find(string.lower(obj.Name), "spawn") then return obj end end
+	return nil
+end
 local function startFarm()
 	if farmPausedByMurder then return end
 	if farmConn then farmConn:Disconnect() end
@@ -479,8 +533,15 @@ local function startFarm()
 			local origin = farmPart and farmPart.Position or Vector3.new(0,0,0)
 			local target = getNearestCoin(origin)
 			if not target or not target.Parent or target.Transparency >= 0.5 then
-				if farmPart then farmPart.CFrame = CFrame.new(-400, 400, -2000) end
-				task.wait(0.5)
+				-- NO COIN LEFT: IDLE AT SPAWN POINT WITH OFFSET Y -45
+				local spawn = findLobbySpawn()
+				if spawn and farmPart then
+					local idlePos = spawn.Position + Vector3.new(0, -45, 0)
+					farmPart.CFrame = CFrame.new(idlePos)
+				else
+					if farmPart then farmPart.CFrame = CFrame.new(0, -45, 0) end
+				end
+				task.wait(1)
 			else
 				local isContested = isCoinContested(target)
 				if isContested then
@@ -502,6 +563,7 @@ local function startFarm()
 					if curDist < 4 then break end
 					if math.abs(curDist - lastDist) < 0.1 then stuckTime += task.wait() if stuckTime > 0.8 then break end else stuckTime = 0 end
 					lastDist = curDist
+					-- NORMAL TWEEN
 					local factor = 0.55 + 0.45 * math.clamp(curDist / 90, 0, 1)
 					local slowMult = contestedNow and 0.3 or 1.0
 					local alpha = math.clamp((farmSpeed * 0.032 * factor) * slowMult, 0.012, 0.18)
@@ -515,7 +577,16 @@ local function startFarm()
 						task.wait(0.018)
 					end
 				end
-				task.wait(isContested and 1.0 or 0.65)
+				-- DELAY LOGIC: 1-15 STUD = 0.25, >15 STUD = IDLE AT PREVIOUS COIN FOR 0.85
+				local nextCoin = getNearestCoin(farmPart.Position)
+				local distNext = nextCoin and (nextCoin.Position - farmPart.Position).Magnitude or 999
+				if distNext >= 1 and distNext <= 15 then
+					if farmPart then farmPart.CFrame = CFrame.new(dest) end
+					task.wait(0.25)
+				else
+					if farmPart then farmPart.CFrame = CFrame.new(dest) end
+					task.wait(0.85)
+				end
 			end
 		end
 	end)
@@ -648,6 +719,7 @@ end
 local function stopSheriffLoop()
 	stopSheriffLoopInternal()
 	sheriffLoopEnabled = false
+	if autoSaveEnabled then saveConfig() end
 end
 local function hrpHasParticle(hrp)
 	if not hrp or not hrp.Parent then return false end
@@ -661,14 +733,17 @@ local function getMapNameFromHRP(hrp)
 	local cur = hrp.Parent
 	for i=1,12 do
 		if not cur then break end
-		local lname = string.lower(cur.Name)
-		if mapHRSet[lname] then return cur.Name end
-		for _, mapName in ipairs(mapHRList) do
-			if string.find(lname, string.lower(mapName), 1, true) then return cur.Name end
-		end
+		local norm = normalizeMapName(cur.Name)
+		if mapHRSet[norm] then return cur.Name end
 		cur = cur.Parent
 	end
 	return "Unknown Map"
+end
+local function findMapFolder(normalizedName)
+	for _, obj in ipairs(Workspace:GetChildren()) do
+		if normalizeMapName(obj.Name) == normalizedName then return obj end
+	end
+	return nil
 end
 local function findHRPInMaps()
 	for _, obj in ipairs(Workspace:GetDescendants()) do
@@ -679,17 +754,18 @@ local function findHRPInMaps()
 				local cur = obj.Parent
 				for i=1,10 do
 					if not cur then break end
-					local lname = string.lower(cur.Name)
-					if mapHRSet[lname] then return obj end
-					for mapName,_ in pairs(mapHRSet) do if string.find(lname, string.lower(mapName), 1, true) then return obj end end
+					if mapHRSet[normalizeMapName(cur.Name)] then return obj end
 					cur = cur.Parent
 				end
 			end
 		end
 	end
 	for _, mapName in ipairs(mapHRList) do
-		local folder = Workspace:FindFirstChild(mapName)
-		if not folder then for _, d in ipairs(Workspace:GetChildren()) do if string.lower(d.Name) == string.lower(mapName) then folder = d break end end end
+		local norm = normalizeMapName(mapName)
+		local folder = findMapFolder(norm) or Workspace:FindFirstChild(mapName)
+		if not folder then
+			for _, d in ipairs(Workspace:GetChildren()) do if normalizeMapName(d.Name) == norm then folder = d break end end
+		end
 		if folder then
 			for _, d in ipairs(folder:GetDescendants()) do
 				if d.Name == "HumanoidRootPart" and d:IsA("BasePart") and hrpHasParticle(d) then
@@ -726,7 +802,7 @@ local function startESPGun()
 				if not espGunWasFound then
 					espGunWasFound = true
 					local mapName = getMapNameFromHRP(hrp)
-					library:Addnotification({title = "ESP Gun", desc = "Gun HRP muncul di "..mapName.."!", duration = 5})
+					library:Addnotification({title = "ESP Gun", desc = "Gun HRP spawned at "..mapName.."!", duration = 5})
 				end
 				task.wait(0.5)
 			else
@@ -744,6 +820,7 @@ local function stopESPGun()
 	if espGunHL then pcall(function() espGunHL:Destroy() end) espGunHL = nil end
 	espGunWasFound = false
 	espGunLastHrp = nil
+	if autoSaveEnabled then saveConfig() end
 end
 local function startMovement()
 	if movementConn then movementConn:Disconnect() end
@@ -869,16 +946,6 @@ local function createSafePart()
 	part.Parent = Workspace
 	safePlatformPart = part
 	return part
-end
-local function findLobbySpawn()
-	for _, obj in ipairs(Workspace:GetDescendants()) do if obj:IsA("SpawnLocation") then return obj end end
-	for _, name in ipairs({"Spawn","SpawnPoint","SpawnPart","LobbySpawn","SpawnLocation"}) do
-		for _, obj in ipairs(Workspace:GetDescendants()) do
-			if obj:IsA("BasePart") and string.lower(obj.Name) == string.lower(name) then return obj end
-		end
-	end
-	for _, obj in ipairs(Workspace:GetDescendants()) do if obj:IsA("BasePart") and string.find(string.lower(obj.Name), "spawn") then return obj end end
-	return nil
 end
 local function doAntiLag()
 	for _, obj in ipairs(Workspace:GetDescendants()) do
@@ -1103,6 +1170,7 @@ local function stopAimbotLoop()
 	if aimbotInfoConn then aimbotInfoConn:Disconnect() aimbotInfoConn = nil end
 	stop360RadarPart()
 	aimbotCurrentTarget = nil
+	if autoSaveEnabled then saveConfig() end
 end
 local function makeTrollTiduran()
 	local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
@@ -1168,6 +1236,7 @@ local function stopTrollMurderLoop()
 		task.wait(0.05)
 		hum:ChangeState(Enum.HumanoidStateType.Running)
 	end
+	if autoSaveEnabled then saveConfig() end
 end
 local function startTrollSheriffLoop()
 	if trollSheriffConn then trollSheriffConn:Disconnect() end
@@ -1211,6 +1280,7 @@ local function stopTrollSheriffLoop()
 		task.wait(0.05)
 		hum:ChangeState(Enum.HumanoidStateType.Running)
 	end
+	if autoSaveEnabled then saveConfig() end
 end
 local function startMapHRPButton()
 	if mapHRGui then mapHRGui:Destroy() mapHRGui = nil end
@@ -1230,8 +1300,8 @@ local function startMapHRPButton()
 	pcall(function() sg.Parent = game:GetService("CoreGui") end)
 	if not sg.Parent then sg.Parent = LocalPlayer:WaitForChild("PlayerGui") end
 	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(0,170,0,48)
-	btn.Position = UDim2.new(0.5,-85,0.75,0)
+	btn.Size = UDim2.new(0,130,0,32)
+	btn.Position = UDim2.new(0.5,-65,0.75,0)
 	btn.Text = "TP TO GUN"
 	btn.BackgroundColor3 = Color3.fromRGB(20,20,20)
 	btn.BackgroundTransparency = 0.25
@@ -1240,10 +1310,10 @@ local function startMapHRPButton()
 	btn.Font = Enum.Font.GothamBold
 	btn.Parent = sg
 	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0,14)
+	corner.CornerRadius = UDim.new(0,10)
 	corner.Parent = btn
 	local stroke = Instance.new("UIStroke")
-	stroke.Thickness = 1.5
+	stroke.Thickness = 1.2
 	stroke.Color = Color3.fromRGB(255,255,255)
 	stroke.Transparency = 0.35
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
@@ -1329,19 +1399,20 @@ task.spawn(function()
 	end
 end)
 
-espGroup:CreateToggle("ESP Murder", false, function(s) murderEnabled = s end)
-espGroup:CreateToggle("ESP Sheriff", false, function(s) sheriffEnabled = s end)
-espGroup:CreateToggle("ESP Innocent", false, function(s) innocentEnabled = s end)
+espGroup:CreateToggle("ESP Murder", false, function(s) murderEnabled = s if autoSaveEnabled then saveConfig() end end)
+espGroup:CreateToggle("ESP Sheriff", false, function(s) sheriffEnabled = s if autoSaveEnabled then saveConfig() end end)
+espGroup:CreateToggle("ESP Innocent", false, function(s) innocentEnabled = s if autoSaveEnabled then saveConfig() end end)
 espGroup:CreateToggle("ESP Gun", false, function(s)
 	espGunEnabled = s
 	if s then startESPGun() else stopESPGun() end
+	if autoSaveEnabled then saveConfig() end
 end)
 killGroup:CreateToggle("Kill All", false, function(state)
 	if state then
 		if farmEnabled then
 			killAuraEnabled = false
 			stopTP()
-			library:Addnotification({title = "Warning", desc = "Farm Coin ON! Matikan Farm dulu sebelum Kill Aura", duration = 5})
+			library:Addnotification({title = "Warning", desc = "Farm Coin is ON! Turn off Farm first before using Kill Aura", duration = 5})
 			return
 		end
 		killAuraEnabled = true
@@ -1351,6 +1422,7 @@ killGroup:CreateToggle("Kill All", false, function(state)
 			clickLoopTP()
 		end
 	else killAuraEnabled = false stopTP() end
+	if autoSaveEnabled then saveConfig() end
 end)
 coinGroup:CreateToggle("Farm Coin", false, function(state)
 	if state then
@@ -1361,29 +1433,33 @@ coinGroup:CreateToggle("Farm Coin", false, function(state)
 		end
 		farmEnabled = true farmPausedByMurder = false startFarm()
 	else stopFarm() end
+	if autoSaveEnabled then saveConfig() end
 end)
-coinGroup:CreateSlider("Tween Speed", 1, 10, 3, function(v) farmSpeed = v end)
-sheriffCounterGroup:CreateToggle("auto kill Murder", false, function(state)
+coinGroup:CreateSlider("Tween Speed", 1, 10, 3, function(v) farmSpeed = v if autoSaveEnabled then saveConfig() end end)
+sheriffCounterGroup:CreateToggle("Auto Kill Murder", false, function(state)
 	if state then
 		if farmEnabled then
 			sheriffLoopEnabled = false stopSheriffLoopInternal()
-			library:Addnotification({title = "Warning", desc = "Farm Coin ON! Turn off Farm before starting the Sheriff Loop.", duration = 5})
+			library:Addnotification({title = "Warning", desc = "Farm Coin is ON! Turn off Farm before using Sheriff Loop", duration = 5})
 			return
 		end
 		sheriffLoopEnabled = true startSheriffLoop()
 	else stopSheriffLoop() end
+	if autoSaveEnabled then saveConfig() end
 end)
 sheriffCounterGroup:CreateToggle("Get Gun", false, function(state)
 	mapHREnabled = state
 	if state then startMapHRPButton() else stopMapHRPButton() end
+	if autoSaveEnabled then saveConfig() end
 end)
 avoidGroup:CreateToggle("Avoid Murder", false, function(state)
 	avoidEnabled = state
 	if state then startAvoid() else stopAvoid() end
+	if autoSaveEnabled then saveConfig() end
 end)
 avoidGroup:CreateInput("Avoid Distance", "40", function(text)
 	local num = tonumber(text)
-	if num then avoidDistance = num end
+	if num then avoidDistance = num if autoSaveEnabled then saveConfig() end end
 end)
 miscGroup:CreateButton("Anti Lag", function() doAntiLag() end)
 miscGroup:CreateButton("Anti Fling", function()
@@ -1392,45 +1468,52 @@ end)
 miscGroup:CreateToggle("Anti Void", false, function(state)
 	antiVoidEnabled = state
 	if state then startAntiVoid() else stopAntiVoid() end
+	if autoSaveEnabled then saveConfig() end
 end)
 movementGroup:CreateToggle("Enable WalkSpeed", false, function(s)
 	walkSpeedEnabled = s
 	if s then startMovement() else stopMovement() end
+	if autoSaveEnabled then saveConfig() end
 end)
 movementGroup:CreateInput("Value", "16", function(t)
 	local n = tonumber(t)
-	if n then walkSpeedValue = math.clamp(n, 1, 500) if walkSpeedEnabled then startMovement() end end
+	if n then walkSpeedValue = math.clamp(n, 1, 500) if walkSpeedEnabled then startMovement() end if autoSaveEnabled then saveConfig() end end
 end)
 movementGroup:CreateToggle("Enable JumpPower", false, function(s)
 	jumpEnabled = s
 	if s then startMovement() else stopMovement() end
+	if autoSaveEnabled then saveConfig() end
 end)
 movementGroup:CreateInput("Value", "50", function(t)
 	local n = tonumber(t)
-	if n then jumpValue = math.clamp(n, 1, 500) if jumpEnabled then startMovement() end end
+	if n then jumpValue = math.clamp(n, 1, 500) if jumpEnabled then startMovement() end if autoSaveEnabled then saveConfig() end end
 end)
 utilityGroup:CreateToggle("Noclip", false, function(s)
 	if s then startNoclip() else stopNoclip() end
+	if autoSaveEnabled then saveConfig() end
 end)
 utilityGroup:CreateToggle("Infinite Jump", false, function(s)
 	infJumpEnabled = s
 	if s then startInfJump() else stopInfJump() end
+	if autoSaveEnabled then saveConfig() end
 end)
 utilityGroup:CreateToggle("X-Ray", false, function(s)
 	xrayEnabled = s
 	if s then startXray() else stopXray() end
+	if autoSaveEnabled then saveConfig() end
 end)
 utilityGroup:CreateToggle("Fullbright", false, function(s)
 	fullbrightEnabled = s
 	if s then startFullbright() else stopFullbright() end
+	if autoSaveEnabled then saveConfig() end
 end)
-teleportGroup:CreateButton("tp to Safe Platform", function()
+teleportGroup:CreateButton("TP to Safe Platform", function()
 	local part = createSafePart()
 	task.wait(0.1)
 	local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
 	if hrp and part then
 		hrp.CFrame = CFrame.new(part.Position + Vector3.new(0,2,0))
-		library:Addnotification({title="Teleport", desc="TP ke Safe Part 0,500k,0", duration=3})
+		library:Addnotification({title="Teleport", desc="Teleported to Safe Part at 0,500k,0", duration=3})
 	end
 end)
 teleportGroup:CreateButton("TP to Lobby", function()
@@ -1439,9 +1522,9 @@ teleportGroup:CreateButton("TP to Lobby", function()
 		local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
 		if hrp then
 			hrp.CFrame = CFrame.new(spawn.Position + Vector3.new(0,3,0))
-			library:Addnotification({title="Teleport", desc="TP t9 Lobby: ", duration=3})
+			library:Addnotification({title="Teleport", desc="Teleported to Lobby", duration=3})
 		end
-	else library:Addnotification({title="Teleport", desc="failed Teleport", duration=3}) end
+	else library:Addnotification({title="Teleport", desc="Teleport Failed - Lobby not found", duration=3}) end
 end)
 teleportGroup:CreateDivider("")
 teleportGroup:CreateButton("TP to Murder", function()
@@ -1449,30 +1532,33 @@ teleportGroup:CreateButton("TP to Murder", function()
 	if m and m.Character and m.Character:FindFirstChild("HumanoidRootPart") then
 		local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
 		if hrp then hrp.CFrame = m.Character.HumanoidRootPart.CFrame * CFrame.new(0,0,2) end
-	else library:Addnotification({title="Teleport", desc="not thing Murder", duration=3}) end
+	else library:Addnotification({title="Teleport", desc="Murder not found", duration=3}) end
 end)
 teleportGroup:CreateButton("TP to Sheriff", function()
 	local s = getSheriffPlayer()
 	if s and s.Character and s.Character:FindFirstChild("HumanoidRootPart") then
 		local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
 		if hrp then hrp.CFrame = s.Character.HumanoidRootPart.CFrame * CFrame.new(0,0,2) end
-	else library:Addnotification({title="Teleport", desc="not thing Sheriff", duration=3}) end
+	else library:Addnotification({title="Teleport", desc="Sheriff not found", duration=3}) end
 end)
 aimbotGroup:CreateDropdown({text = "Target Role", list = {"Murder","Sheriff","Innocent"}, multi = false, callback = function(sel)
 	local v = sel
 	if type(sel) == "table" then v = sel[1] end
 	aimbotRole = tostring(v)
+	if autoSaveEnabled then saveConfig() end
 end})
 aimbotGroup:CreateSlider("Aim Prediction", 0, 5, 0, function(v)
 	aimbotPrediction = v
+	if autoSaveEnabled then saveConfig() end
 end)
 aimbotGroup:CreateToggle("Enable Aimbot", false, function(s)
 	aimbotEnabled = s
 	if s then startAimbotLoop() else stopAimbotLoop() if aimbotInfoGui then aimbotInfoGui:Destroy() aimbotInfoGui=nil end end
+	if autoSaveEnabled then saveConfig() end
 end)
 trollGroup:CreateButton("Execute Touch Fling", function()
 	if flingExecuted then
-		library:Addnotification({title="Fling", desc="Fling has Execute", duration=3})
+		library:Addnotification({title="Fling", desc="Fling already executed", duration=3})
 		return
 	end
 	flingExecuted = true
@@ -1480,31 +1566,122 @@ trollGroup:CreateButton("Execute Touch Fling", function()
 	library:Addnotification({title="Fling", desc="Touch Fling Executed!", duration=3})
 end)
 trollGroup:CreateDivider("")
-trollGroup:CreateToggle("fling Murder", false, function(s)
+trollGroup:CreateToggle("Fling Murder", false, function(s)
 	trollMurderEnabled = s
 	if s then
 		if trollSheriffEnabled then
 			trollSheriffEnabled = false
 			stopTrollSheriffLoop()
 		end
-		library:Addnotification({title="fling", desc="fling Murder ON", duration=3})
+		library:Addnotification({title="Fling", desc="Fling Murder ON", duration=3})
 		startTrollMurderLoop()
 	else
 		stopTrollMurderLoop()
-		library:Addnotification({title="fling", desc="fling Murder OFF", duration=2})
+		library:Addnotification({title="Fling", desc="Fling Murder OFF", duration=2})
 	end
+	if autoSaveEnabled then saveConfig() end
 end)
-trollGroup:CreateToggle("fling Sheriff", false, function(s)
+trollGroup:CreateToggle("Fling Sheriff", false, function(s)
 	trollSheriffEnabled = s
 	if s then
 		if trollMurderEnabled then
 			trollMurderEnabled = false
 			stopTrollMurderLoop()
 		end
-		library:Addnotification({title="fling", desc="fling Sheriff ON", duration=3})
+		library:Addnotification({title="Fling", desc="Fling Sheriff ON", duration=3})
 		startTrollSheriffLoop()
 	else
 		stopTrollSheriffLoop()
-		library:Addnotification({title="fling", desc="fling Sheriff OFF", duration=2})
+		library:Addnotification({title="Fling", desc="Fling Sheriff OFF", duration=2})
+	end
+	if autoSaveEnabled then saveConfig() end
+end)
+
+uiGroup:CreateToggle("Auto Save Config", false, function(state)
+	autoSaveEnabled = state
+	if state then
+		if writefile then
+			saveConfig()
+			library:Addnotification({title="Auto Save", desc="Auto Save ON - Config will auto save on every value change", duration=4})
+		else
+			library:Addnotification({title="Auto Save", desc="Executor does not support writefile", duration=3})
+		end
+	else
+		library:Addnotification({title="Auto Save", desc="Auto Save OFF", duration=2})
+	end
+end)
+uiGroup:CreateButton("Save Config Now", function()
+	local was = autoSaveEnabled
+	autoSaveEnabled = true
+	saveConfig()
+	autoSaveEnabled = was
+	library:Addnotification({title="Config", desc="Config saved to "..ConfigFileName, duration=3})
+end)
+uiGroup:CreateButton("Load Config", function()
+	local cfg = loadConfig()
+	if cfg then
+		murderEnabled = cfg.murderEnabled or false
+		sheriffEnabled = cfg.sheriffEnabled or false
+		innocentEnabled = cfg.innocentEnabled or false
+		espGunEnabled = cfg.espGunEnabled or false
+		farmSpeed = cfg.farmSpeed or 3
+		avoidDistance = cfg.avoidDistance or 40
+		walkSpeedValue = cfg.walkSpeedValue or 16
+		jumpValue = cfg.jumpValue or 50
+		aimbotRole = cfg.aimbotRole or "Murder"
+		aimbotPrediction = cfg.aimbotPrediction or 0
+		library:Addnotification({title="Config", desc="Config loaded! Please re-enable toggles", duration=3})
+	else
+		library:Addnotification({title="Config", desc="No config file found", duration=3})
+	end
+end)
+uiGroup:CreateButton("Delete Config", function()
+	if delfile and isfile and isfile(ConfigFileName) then
+		delfile(ConfigFileName)
+		library:Addnotification({title="Config", desc="Config deleted", duration=3})
+	else
+		library:Addnotification({title="Config", desc="No file to delete or executor not supported", duration=3})
+	end
+end)
+uiGroup:CreateDivider("")
+uiGroup:CreateButton("Reload UI", function()
+	pcall(function() stopTP() end)
+	pcall(function() stopFarm() end)
+	pcall(function() stopSheriffLoop() end)
+	pcall(function() stopAvoid() end)
+	pcall(function() stopAntiVoid() end)
+	pcall(function() stopMovement() end)
+	pcall(function() setNoclip(false) end)
+	pcall(function() stopInfJump() end)
+	pcall(function() stopXray() end)
+	pcall(function() stopFullbright() end)
+	pcall(function() stopAimbotLoop() end)
+	pcall(function() stopTrollMurderLoop() end)
+	pcall(function() stopTrollSheriffLoop() end)
+	pcall(function() stopMapHRPButton() end)
+	pcall(function() stopESPGun() end)
+	for plr,_ in pairs(espData) do pcall(function() removeESP(plr) end) end
+	pcall(function() if mapHRGui then mapHRGui:Destroy() mapHRGui=nil end end)
+	pcall(function() if aimbotInfoGui then aimbotInfoGui:Destroy() aimbotInfoGui=nil end end)
+	pcall(function() if espGunHL then espGunHL:Destroy() espGunHL=nil end end)
+	pcall(function() if safePlatformPart then safePlatformPart:Destroy() safePlatformPart=nil end end)
+	pcall(function() if farmPart then farmPart:Destroy() farmPart=nil end end)
+	pcall(function() if platformPart then platformPart:Destroy() platformPart=nil end end)
+	murderEnabled = false sheriffEnabled = false innocentEnabled = false
+	killAuraEnabled = false farmEnabled = false sheriffLoopEnabled = false
+	mapHREnabled = false avoidEnabled = false antiVoidEnabled = false
+	walkSpeedEnabled = false jumpEnabled = false noclipEnabled = false
+	infJumpEnabled = false xrayEnabled = false fullbrightEnabled = false
+	aimbotEnabled = false trollMurderEnabled = false trollSheriffEnabled = false
+	task.wait(0.3)
+	loadstring(game:HttpGet("https://github.com/XVC-THE-CODER/Renux-Hub/releases/latest/download/loader.lua",true))()
+end)
+
+task.spawn(function()
+	task.wait(1.5)
+	local cfg = loadConfig()
+	if cfg and cfg.autoSaveEnabled then
+		autoSaveEnabled = true
+		library:Addnotification({title="Auto Save", desc="Loaded previous config, Auto Save is ON", duration=3})
 	end
 end)
