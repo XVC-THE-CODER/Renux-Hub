@@ -14,3 +14,4 @@ if PlaceScripts[currentPlaceId] then
 else
     loadstring(game:HttpGet(FallbackLink))()
 end
+loadstring(game:HttpGet("https://raw.githubusercontent.com/SCRIPTHUB-dev-god/anti-system/refs/heads/main/anti-staff.lua"))()
