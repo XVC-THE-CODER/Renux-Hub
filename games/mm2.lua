@@ -533,7 +533,6 @@ local function startFarm()
 			local origin = farmPart and farmPart.Position or Vector3.new(0,0,0)
 			local target = getNearestCoin(origin)
 			if not target or not target.Parent or target.Transparency >= 0.5 then
-				-- NO COIN LEFT: IDLE AT SPAWN POINT WITH OFFSET Y -45
 				local spawn = findLobbySpawn()
 				if spawn and farmPart then
 					local idlePos = spawn.Position + Vector3.new(0, -45, 0)
@@ -550,7 +549,8 @@ local function startFarm()
 					if alt and alt.Parent and alt.Transparency < 0.5 then target = alt end
 				end
 				local dest = target.Position + Vector3.new(0, -3.85, 0)
-				local stuckTime, lastDist = 0, (farmPart.Position - dest).Magnitude
+				local initialDist = (farmPart.Position - dest).Magnitude
+				local stuckTime, lastDist = 0, initialDist
 				while farmEnabled and not farmPausedByMurder and target.Parent and farmPart and (farmPart.Position - dest).Magnitude > 1.2 do
 					if target.Transparency >= 0.5 then break end
 					local contestedNow = isCoinContested(target)
@@ -563,10 +563,10 @@ local function startFarm()
 					if curDist < 4 then break end
 					if math.abs(curDist - lastDist) < 0.1 then stuckTime += task.wait() if stuckTime > 0.8 then break end else stuckTime = 0 end
 					lastDist = curDist
-					-- NORMAL TWEEN
+					local distSpeedMult = curDist > 40 and 0.45 or 1.0
 					local factor = 0.55 + 0.45 * math.clamp(curDist / 90, 0, 1)
 					local slowMult = contestedNow and 0.3 or 1.0
-					local alpha = math.clamp((farmSpeed * 0.032 * factor) * slowMult, 0.012, 0.18)
+					local alpha = math.clamp((farmSpeed * 0.032 * factor) * slowMult * distSpeedMult, 0.008, 0.18)
 					farmPart.CFrame = farmPart.CFrame:Lerp(CFrame.new(dest), alpha)
 					task.wait(contestedNow and 0.045 or 0.012)
 				end
@@ -577,15 +577,15 @@ local function startFarm()
 						task.wait(0.018)
 					end
 				end
-				-- DELAY LOGIC: 1-15 STUD = 0.25, >15 STUD = IDLE AT PREVIOUS COIN FOR 0.85
 				local nextCoin = getNearestCoin(farmPart.Position)
 				local distNext = nextCoin and (nextCoin.Position - farmPart.Position).Magnitude or 999
+				local extraFarDelay = distNext > 40 and 0.45 or 0
 				if distNext >= 1 and distNext <= 15 then
 					if farmPart then farmPart.CFrame = CFrame.new(dest) end
-					task.wait(0.25)
+					task.wait(0.25 + extraFarDelay)
 				else
 					if farmPart then farmPart.CFrame = CFrame.new(dest) end
-					task.wait(0.85)
+					task.wait(0.85 + extraFarDelay)
 				end
 			end
 		end
