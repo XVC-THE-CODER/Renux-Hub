@@ -7,7 +7,7 @@ local TeleportService = game:GetService("TeleportService")
 local Player = Players.LocalPlayer
 
 local gamename = "Unknown"
-local version = "version: 1.1"
+local version = "version: 1.2"
 local success, info = pcall(function() return MarketplaceService:GetProductInfo(game.PlaceId) end)
 if success and info then gamename = info.Name else gamename = game.Name end
 
@@ -64,6 +64,15 @@ local CloneChar = nil
 local OriginalChar = nil
 local InvisLoopConn = nil
 local InfiniteJumpConn = nil
+
+local AntiVoidEnabled = false
+local AntiVoidThread = nil
+local LastSavedCFrame = nil
+local LastCheckPos = nil
+
+local AvoidPlayersEnabled = false
+local AvoidRadius = 15
+local AvoidThread = nil
 
 local WalkSpeedEnabled = false
 local WalkSpeedValue = 16
@@ -302,6 +311,44 @@ Box:AddToggle("Noclip", { Text = "Noclip", Default = false, Callback = function(
     end
 end })
 
+Box:AddInput("AvoidRadiusInput", { Text = "Avoid Radius", Default = "15", Numeric = true, Finished = false, ClearTextOnFocus = true, Callback = function(Value)
+    local n = tonumber(Value)
+    if n then AvoidRadius = n end
+end })
+
+Box:AddToggle("AvoidPlayers", { Text = "Avoid Players", Default = false, Callback = function(Value)
+    AvoidPlayersEnabled = Value
+    if Value then
+        AvoidThread = task.spawn(function()
+            while AvoidPlayersEnabled do
+                if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+                    local myHrp = Player.Character.HumanoidRootPart
+                    for _, p in ipairs(Players:GetPlayers()) do
+                        if p ~= Player and IsPlayerAlive(p) and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                            local targetHrp = p.Character.HumanoidRootPart
+                            local dist = (myHrp.Position - targetHrp.Position).Magnitude
+                            if dist <= AvoidRadius then
+                                local dir = (myHrp.Position - targetHrp.Position)
+                                if dir.Magnitude == 0 then
+                                    dir = Vector3.new(1, 0, 0)
+                                else
+                                    dir = dir.Unit
+                                end
+                                local tpDist = AvoidRadius + 10
+                                local targetPos = myHrp.Position + (dir * tpDist)
+                                myHrp.CFrame = CFrame.new(targetPos)
+                                myHrp.Velocity = Vector3.new(0, 0, 0)
+                                break
+                            end
+                        end
+                    end
+                end
+                task.wait(0.05)
+            end
+        end)
+    end
+end })
+
 Box:AddToggle("XRay", { Text = "X-Ray", Default = false, Callback = function(Value)
     XRayEnabled = Value
     if Value then
@@ -427,37 +474,34 @@ Box:AddToggle("InfiniteJump", { Text = "Infinite Jump", Default = false, Callbac
     end
 end })
 
-Box:AddDivider()
-Box:AddToggle("CreditTP", { Text = "Teleport Credit (Auto No Repeat)", Default = false, Callback = function(Value)
-    CreditTPEnabled = Value
+Box:AddToggle("AntiVoid", { Text = "Anti Void", Default = false, Callback = function(Value)
+    AntiVoidEnabled = Value
     if Value then
-        CreditTPThread = task.spawn(function()
-            while CreditTPEnabled do
-                local list = GetCreditParts()
-                if #list == 0 then
-                    Library:Notify({ Title = "Credit", Description = "No credits found. Teleport paused.", Time = 2 })
-                    table.clear(VisitedCredits)
-                    task.wait(2)
-                else
-                    local nextPart = GetNextUnvisitedCredit(list)
-                    if not nextPart then
-                        table.clear(VisitedCredits)
-                        nextPart = list[1]
-                    end
-                    if nextPart and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-                        pcall(function()
-                            local hrp = Player.Character.HumanoidRootPart
-                            hrp.CFrame = CFrame.new(nextPart.Position + Vector3.new(0, 5, 0))
+        AntiVoidThread = task.spawn(function()
+            while AntiVoidEnabled do
+                if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") and Player.Character:FindFirstChildOfClass("Humanoid") then
+                    local hrp = Player.Character.HumanoidRootPart
+                    local hum = Player.Character:FindFirstChildOfClass("Humanoid")
+                    local pos = hrp.Position
+                    if pos.Y <= -175 then
+                        if LastSavedCFrame then
+                            hrp.CFrame = LastSavedCFrame
                             hrp.Velocity = Vector3.new(0, 0, 0)
-                        end)
-                        VisitedCredits[nextPart] = true
+                        end
+                    else
+                        if hum.FloorMaterial ~= Enum.Material.Air then
+                            if not LastCheckPos or (pos - LastCheckPos).Magnitude > 0.1 then
+                                LastSavedCFrame = hrp.CFrame
+                                LastCheckPos = pos
+                            end
+                        end
                     end
-                    task.wait(0.6)
                 end
+                task.wait(0.1)
             end
         end)
     else
-        CreditTPEnabled = false
+        AntiVoidEnabled = false
     end
 end })
 
@@ -532,6 +576,40 @@ TPBox:AddToggle("TPAllGroundCheck", { Text = "kill all Players", Default = false
         end
     end
 end })
+
+TPBox:AddToggle("CreditTP", { Text = "farm credit", Default = false, Callback = function(Value)
+    CreditTPEnabled = Value
+    if Value then
+        CreditTPThread = task.spawn(function()
+            while CreditTPEnabled do
+                local list = GetCreditParts()
+                if #list == 0 then
+                    Library:Notify({ Title = "Credit", Description = "No credits found. Teleport paused.", Time = 2 })
+                    table.clear(VisitedCredits)
+                    task.wait(2)
+                else
+                    local nextPart = GetNextUnvisitedCredit(list)
+                    if not nextPart then
+                        table.clear(VisitedCredits)
+                        nextPart = list[1]
+                    end
+                    if nextPart and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+                        pcall(function()
+                            local hrp = Player.Character.HumanoidRootPart
+                            hrp.CFrame = CFrame.new(nextPart.Position + Vector3.new(0, 5, 0))
+                            hrp.Velocity = Vector3.new(0, 0, 0)
+                        end)
+                        VisitedCredits[nextPart] = true
+                    end
+                    task.wait(0.6)
+                end
+            end
+        end)
+    else
+        CreditTPEnabled = false
+    end
+end })
+TPBox:AddDivider()
 
 TPBox:AddToggle("SafePlatformTP", {
     Text = "TP Safe Platform",
