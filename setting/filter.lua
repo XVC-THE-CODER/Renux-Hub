@@ -1,3 +1,9 @@
+local function anti-cheat()
+    pcall(function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/SCRIPTHUB-dev-god/anti-system/refs/heads/main/anti-staff.lua"))()
+    end)
+end
+
 local PlaceScripts = {
     [537413528] = "https://raw.githubusercontent.com/XVC-THE-CODER/Renux-Hub/refs/heads/main/games/babft.lua",
     [90568084448279] = "https://raw.githubusercontent.com/XVC-THE-CODER/Renux-Hub/refs/heads/main/games/one-tap.lua",
@@ -14,4 +20,5 @@ if PlaceScripts[currentPlaceId] then
 else
     loadstring(game:HttpGet(FallbackLink))()
 end
-loadstring(game:HttpGet("https://raw.githubusercontent.com/SCRIPTHUB-dev-god/anti-system/refs/heads/main/anti-staff.lua"))()
+
+anti-cheat()
