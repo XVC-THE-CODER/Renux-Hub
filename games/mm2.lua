@@ -1541,7 +1541,7 @@ teleportGroup:CreateButton("TP to Sheriff", function()
 		if hrp then hrp.CFrame = s.Character.HumanoidRootPart.CFrame * CFrame.new(0,0,2) end
 	else library:Addnotification({title="Teleport", desc="Sheriff not found", duration=3}) end
 end)
-aimbotGroup:CreateDropdown({text = "Target Role", list = {"Murder","Sheriff","Innocent"}, multi = false, callback = function(sel)
+aimbotGroup:CreateDropdown({text = "Target Role", list = {"Murder","Sheriff","Innocent"}, Default = "Murder", multi = false, callback = function(sel)
 	local v = sel
 	if type(sel) == "table" then v = sel[1] end
 	aimbotRole = tostring(v)
