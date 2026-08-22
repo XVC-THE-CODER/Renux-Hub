@@ -1,10 +1,10 @@
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local UserInputService = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
-local HttpService = game:GetService("HttpService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera
 local library = loadstring(game:HttpGet("https://github.com/SCRIPTHUB-dev-god/User-Interface/releases/latest/download/wave-ui.lua"))()
@@ -50,8 +50,6 @@ local farmPart, platformPart, farmConn = nil, nil, nil
 local farmSpeed = 3
 local savedParts, farmAddConn = {}, nil
 local farmPausedByMurder = false
-local sheriffLoopEnabled = false
-local sheriffHB, sheriffCamConn, sheriffShootConn = nil, nil, nil
 local lastSafeHeight = 45
 local mapHREnabled = false
 local mapHRGui, mapHRAutoSaveConn, mapHRSavedCFrame, mapHRTPing = nil, nil, nil, false
@@ -75,7 +73,7 @@ local fullbrightEnabled, fullbrightConn = false, nil
 local oldLighting = {}
 local espData = {}
 local espGunHL, espGunLoop, espGunWasFound, espGunLastHrp = nil, nil, false, nil
-local aimbotRole = "Murder"
+local aimbotMurderEnabled, aimbotSheriffEnabled, aimbotInnocentEnabled = false, false, false
 local aimbotPrediction = 0
 local aimbotEnabled = false
 local aimbotConn = nil
@@ -95,55 +93,6 @@ local startTime = tick()
 local fps = 0
 local frameCount = 0
 local lastFpsTick = tick()
-local autoSaveEnabled = false
-local ConfigFileName = "RenuxHub_MM2_Config.json"
-
-local function getCurrentConfig()
-	return {
-		murderEnabled = murderEnabled,
-		sheriffEnabled = sheriffEnabled,
-		innocentEnabled = innocentEnabled,
-		espGunEnabled = espGunEnabled,
-		killAuraEnabled = killAuraEnabled,
-		farmEnabled = farmEnabled,
-		farmSpeed = farmSpeed,
-		sheriffLoopEnabled = sheriffLoopEnabled,
-		mapHREnabled = mapHREnabled,
-		avoidEnabled = avoidEnabled,
-		avoidDistance = avoidDistance,
-		antiVoidEnabled = antiVoidEnabled,
-		walkSpeedEnabled = walkSpeedEnabled,
-		walkSpeedValue = walkSpeedValue,
-		jumpEnabled = jumpEnabled,
-		jumpValue = jumpValue,
-		noclipEnabled = noclipEnabled,
-		infJumpEnabled = infJumpEnabled,
-		xrayEnabled = xrayEnabled,
-		fullbrightEnabled = fullbrightEnabled,
-		aimbotRole = aimbotRole,
-		aimbotPrediction = aimbotPrediction,
-		aimbotEnabled = aimbotEnabled,
-		trollMurderEnabled = trollMurderEnabled,
-		trollSheriffEnabled = trollSheriffEnabled,
-		autoSaveEnabled = autoSaveEnabled,
-	}
-end
-local function saveConfig()
-	if not autoSaveEnabled then return end
-	if not writefile then return end
-	local ok, json = pcall(function() return HttpService:JSONEncode(getCurrentConfig()) end)
-	if ok then pcall(function() writefile(ConfigFileName, json) end) end
-end
-local function loadConfig()
-	if not isfile or not readfile then return nil end
-	if not isfile(ConfigFileName) then return nil end
-	local ok, content = pcall(function() return readfile(ConfigFileName) end)
-	if not ok then return nil end
-	local ok2, data = pcall(function() return HttpService:JSONDecode(content) end)
-	if ok2 and type(data)=="table" then return data end
-	return nil
-end
-
 RunService.RenderStepped:Connect(function()
 	frameCount += 1
 	if tick() - lastFpsTick >= 1 then
@@ -152,36 +101,34 @@ RunService.RenderStepped:Connect(function()
 		lastFpsTick = tick()
 	end
 end)
-
 local function setNoclip(state)
-    if state ~= nil then noclipEnabled = state else noclipEnabled = not noclipEnabled end
-    if noclipEnabled then
-        if not noclipConnection then
-            noclipConnection = RunService.Stepped:Connect(function()
-                local character = LocalPlayer.Character
-                if character then
-                    for _, part in ipairs(character:GetDescendants()) do
-                        if part:IsA("BasePart") then part.CanCollide = false end
-                    end
-                end
-            end)
-        end
-    else
-        if noclipConnection then noclipConnection:Disconnect() noclipConnection = nil end
-        local character = LocalPlayer.Character
-        if character then
-            for _, part in ipairs(character:GetDescendants()) do
-                if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
-                    if part.Parent and part.Parent:IsA("Accessory") then part.CanCollide = false else part.CanCollide = true end
-                end
-            end
-        end
-    end
-	if autoSaveEnabled then saveConfig() end
+	if state ~= nil then noclipEnabled = state else noclipEnabled = not noclipEnabled end
+	if noclipEnabled then
+		if not noclipConnection then
+			noclipConnection = RunService.Stepped:Connect(function()
+				local character = LocalPlayer.Character
+				if character then
+					for _, part in ipairs(character:GetDescendants()) do
+						if part:IsA("BasePart") then part.CanCollide = false end
+					end
+				end
+			end)
+		end
+	else
+		if noclipConnection then noclipConnection:Disconnect() noclipConnection = nil end
+		local character = LocalPlayer.Character
+		if character then
+			for _, part in ipairs(character:GetDescendants()) do
+				if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+					if part.Parent and part.Parent:IsA("Accessory") then part.CanCollide = false else part.CanCollide = true end
+				end
+			end
+		end
+	end
 end
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    if input.KeyCode == Enum.KeyCode.N then setNoclip() end
+	if gameProcessed then return end
+	if input.KeyCode == Enum.KeyCode.N then setNoclip() end
 end)
 getgenv().ToggleNoclip = setNoclip
 local function startNoclip() setNoclip(true) end
@@ -252,17 +199,25 @@ local function getInnocentPlayers()
 	end
 	return arr
 end
-local function getTargetsByRole(role)
-	role = string.lower(role)
-	if role == "murder" then local m = getMurderPlayer() if m then return {m} else return {} end
-	elseif role == "sheriff" then local s = getSheriffPlayer() if s then return {s} else return {} end
-	elseif role == "innocent" or role == "inconect" then return getInnocentPlayers() end
-	return {}
+local function getAimbotTargets()
+	local arr = {}
+	if aimbotMurderEnabled then
+		local m = getMurderPlayer()
+		if m then table.insert(arr, m) end
+	end
+	if aimbotSheriffEnabled then
+		local s = getSheriffPlayer()
+		if s then table.insert(arr, s) end
+	end
+	if aimbotInnocentEnabled then
+		for _, p in ipairs(getInnocentPlayers()) do table.insert(arr, p) end
+	end
+	return arr
 end
-local function getNearestTargetByRole(role)
+local function getNearestAimbotTarget()
 	local myHrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
 	if not myHrp then return nil end
-	local list = getTargetsByRole(role)
+	local list = getAimbotTargets()
 	local near, md = nil, math.huge
 	for _, plr in ipairs(list) do
 		local hrp = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
@@ -285,11 +240,6 @@ local function hasWallBetween(origin, targetPos, ignoreChar)
 	end
 	return false
 end
-local function isMurderAlone(murderHrp, murderPlr)
-	for _, plr in ipairs(Players:GetPlayers()) do
-		if plr ~= LocalPlayer and plr ~= murderPlr and isAlive(plr) then
-			local hrp = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
-			if hrp and (hrp.Position - murderHrp.Position).Magnitude <= 15 then return false end
 		end
 	end
 	return true
@@ -300,9 +250,6 @@ local function pressOne()
 	VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.One, false, game)
 	task.wait(0.1)
 end
-local function isBlockedAbove(fromPos, toPos, ignoreChar)
-	local dir = toPos - fromPos
-	if dir.Magnitude < 1 then return false end
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Blacklist
 	local list = {LocalPlayer.Character}
@@ -313,12 +260,6 @@ local function isBlockedAbove(fromPos, toPos, ignoreChar)
 	if result and result.Instance then if result.Instance.CanCollide and result.Instance.Transparency < 0.8 then return true end end
 	return false
 end
-local function hasClearShot(fromPos, targetPos, ignoreChar)
-	local dir = targetPos - fromPos
-	local params = RaycastParams.new()
-	params.FilterType = Enum.RaycastFilterType.Blacklist
-	local list = {LocalPlayer.Character}
-	if ignoreChar then table.insert(list, ignoreChar) end
 	params.FilterDescendantsInstances = list
 	params.IgnoreWater = true
 	local result = Workspace:Raycast(fromPos, dir, params)
@@ -326,12 +267,6 @@ local function hasClearShot(fromPos, targetPos, ignoreChar)
 	if result.Instance and result.Instance:IsDescendantOf(ignoreChar) then return true end
 	return false
 end
-local function getSafeAbovePos(murderHrp, murderChar)
-	local heights = {45,35,15}
-	for _, h in ipairs(heights) do
-		local pos = murderHrp.Position + Vector3.new(0,h,0)
-		if not isBlockedAbove(murderHrp.Position, pos, murderChar) then
-			if hasClearShot(pos, murderHrp.Position, murderChar) then return pos, h end
 		end
 	end
 	return murderHrp.Position + Vector3.new(0,15,0), 15
@@ -664,63 +599,6 @@ local function clickLoopTP()
 		end
 	end)
 end
-local function stopSheriffLoopInternal()
-	if sheriffHB then sheriffHB:Disconnect() sheriffHB = nil end
-	if sheriffCamConn then sheriffCamConn:Disconnect() sheriffCamConn = nil end
-	if sheriffShootConn then task.cancel(sheriffShootConn) sheriffShootConn = nil end
-end
-local function startSheriffLoop()
-	if sheriffHB then sheriffHB:Disconnect() end
-	if sheriffCamConn then sheriffCamConn:Disconnect() end
-	lastSafeHeight = 45
-	sheriffHB = RunService.Heartbeat:Connect(function()
-		if not sheriffLoopEnabled or not hasGunInBackpack() then return end
-		local murderPlr = getMurderPlayer()
-		if not murderPlr or not isAlive(murderPlr) then return end
-		local mHrp = murderPlr.Character and murderPlr.Character:FindFirstChild("HumanoidRootPart")
-		local myHrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-		if not mHrp or not myHrp then return end
-		local safePos, h = getSafeAbovePos(mHrp, murderPlr.Character)
-		lastSafeHeight = h
-		myHrp.CFrame = CFrame.new(safePos)
-	end)
-	sheriffCamConn = RunService.RenderStepped:Connect(function()
-		if not sheriffLoopEnabled or not hasGunInBackpack() then return end
-		local murderPlr = getMurderPlayer()
-		if not murderPlr then return end
-		local mHrp = murderPlr.Character and murderPlr.Character:FindFirstChild("HumanoidRootPart")
-		if not mHrp then return end
-		Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, mHrp.Position)
-	end)
-	sheriffShootConn = task.spawn(function()
-		while sheriffLoopEnabled do
-			local murderPlr = getMurderPlayer()
-			if not murderPlr or not isAlive(murderPlr) or not hasGunInBackpack() then RunService.Heartbeat:Wait() continue end
-			local mHrp = murderPlr.Character and murderPlr.Character:FindFirstChild("HumanoidRootPart")
-			if mHrp and hasGunInBackpack() then
-				if not isMurderAlone(mHrp, murderPlr) then RunService.Heartbeat:Wait() continue end
-				local _, onScreen = Camera:WorldToViewportPoint(mHrp.Position)
-				if onScreen then
-					Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, mHrp.Position)
-					UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
-					VirtualInputManager:SendMouseButtonEvent(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2, 0, false, game, 0)
-					task.wait(0.02)
-					if not isGunEquipped() then pressOne() task.wait(0.05) end
-					VirtualInputManager:SendMouseButtonEvent(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2, 0, true, game, 0)
-					task.wait(0.02)
-					VirtualInputManager:SendMouseButtonEvent(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2, 0, false, game, 0)
-					task.wait(0.12)
-				end
-			end
-			RunService.Heartbeat:Wait()
-		end
-	end)
-end
-local function stopSheriffLoop()
-	stopSheriffLoopInternal()
-	sheriffLoopEnabled = false
-	if autoSaveEnabled then saveConfig() end
-end
 local function hrpHasParticle(hrp)
 	if not hrp or not hrp.Parent then return false end
 	for _, c in ipairs(hrp:GetChildren()) do if c:IsA("ParticleEmitter") then return true end end
@@ -820,7 +698,6 @@ local function stopESPGun()
 	if espGunHL then pcall(function() espGunHL:Destroy() end) espGunHL = nil end
 	espGunWasFound = false
 	espGunLastHrp = nil
-	if autoSaveEnabled then saveConfig() end
 end
 local function startMovement()
 	if movementConn then movementConn:Disconnect() end
@@ -1088,7 +965,7 @@ local function start360RadarPart()
 		if not myHrp then return end
 		aimbotRadarAngle = (aimbotRadarAngle + dt * 3600) % 360
 		aimbotRadarPart.CFrame = myHrp.CFrame * CFrame.Angles(0, math.rad(aimbotRadarAngle), 0) * CFrame.new(0,0,-1000)
-		local target = aimbotCurrentTarget or getNearestTargetByRole(aimbotRole)
+		local target = aimbotCurrentTarget or getNearestAimbotTarget()
 		if target and target.Character then
 			local tHrp = target.Character:FindFirstChild("HumanoidRootPart")
 			if tHrp then
@@ -1134,7 +1011,7 @@ local function startAimbotLoop()
 		local myChar = LocalPlayer.Character
 		local myHrp = myChar and myChar:FindFirstChild("HumanoidRootPart")
 		if not myHrp then return end
-		local target = getNearestTargetByRole(aimbotRole)
+		local target = getNearestAimbotTarget()
 		aimbotCurrentTarget = target
 		if not target or not target.Character then return end
 		local tHrp = target.Character:FindFirstChild("HumanoidRootPart")
@@ -1152,7 +1029,7 @@ local function startAimbotLoop()
 	aimbotInfoConn = RunService.Heartbeat:Connect(function()
 		local myHrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
 		if not myHrp or not aimbotInfoName then return end
-		local target = aimbotCurrentTarget or getNearestTargetByRole(aimbotRole)
+		local target = aimbotCurrentTarget or getNearestAimbotTarget()
 		if not target or not target.Character then
 			aimbotInfoName.Text = "Target: -"
 			aimbotInfoDist.Text = "Dist: 0"
@@ -1170,7 +1047,6 @@ local function stopAimbotLoop()
 	if aimbotInfoConn then aimbotInfoConn:Disconnect() aimbotInfoConn = nil end
 	stop360RadarPart()
 	aimbotCurrentTarget = nil
-	if autoSaveEnabled then saveConfig() end
 end
 local function makeTrollTiduran()
 	local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
@@ -1236,7 +1112,6 @@ local function stopTrollMurderLoop()
 		task.wait(0.05)
 		hum:ChangeState(Enum.HumanoidStateType.Running)
 	end
-	if autoSaveEnabled then saveConfig() end
 end
 local function startTrollSheriffLoop()
 	if trollSheriffConn then trollSheriffConn:Disconnect() end
@@ -1280,7 +1155,6 @@ local function stopTrollSheriffLoop()
 		task.wait(0.05)
 		hum:ChangeState(Enum.HumanoidStateType.Running)
 	end
-	if autoSaveEnabled then saveConfig() end
 end
 local function startMapHRPButton()
 	if mapHRGui then mapHRGui:Destroy() mapHRGui = nil end
@@ -1343,18 +1217,15 @@ local function stopMapHRPButton()
 	mapHRSavedCFrame = nil
 	mapHRTPing = false
 end
-
 infoLeftGroup:Createinvite({
-     name = "Renux hub",
-     image = "18751483361",
-     link = "https://discord.gg/mXnTVYYYsy",
+	name = "Renux hub",
+	image = "18751483361",
+	link = "https://discord.gg/mXnTVYYYsy",
 })
-
 local infoParaFrame = infoRightGroup:CreateParagraph({
-    title = "information",
-    desc = "fps: 0\nplayer in server: 0\nTime: 00:00:00"
+	title = "information",
+	desc = "fps: 0\nplayer in server: 0\nTime: 00:00:00"
 })
-
 local infoDescLabel = nil
 task.wait(0.3)
 pcall(function()
@@ -1372,7 +1243,6 @@ pcall(function()
 		if #list >= 2 then infoDescLabel = list[2] end
 	end
 end)
-
 task.spawn(function()
 	while true do
 		local elapsed = math.floor(tick() - startTime)
@@ -1398,14 +1268,12 @@ task.spawn(function()
 		task.wait(0.1)
 	end
 end)
-
-espGroup:CreateToggle("ESP Murder", false, function(s) murderEnabled = s if autoSaveEnabled then saveConfig() end end)
-espGroup:CreateToggle("ESP Sheriff", false, function(s) sheriffEnabled = s if autoSaveEnabled then saveConfig() end end)
-espGroup:CreateToggle("ESP Innocent", false, function(s) innocentEnabled = s if autoSaveEnabled then saveConfig() end end)
+espGroup:CreateToggle("ESP Murder", false, function(s) murderEnabled = s end)
+espGroup:CreateToggle("ESP Sheriff", false, function(s) sheriffEnabled = s end)
+espGroup:CreateToggle("ESP Innocent", false, function(s) innocentEnabled = s end)
 espGroup:CreateToggle("ESP Gun", false, function(s)
 	espGunEnabled = s
 	if s then startESPGun() else stopESPGun() end
-	if autoSaveEnabled then saveConfig() end
 end)
 killGroup:CreateToggle("Kill All", false, function(state)
 	if state then
@@ -1422,44 +1290,29 @@ killGroup:CreateToggle("Kill All", false, function(state)
 			clickLoopTP()
 		end
 	else killAuraEnabled = false stopTP() end
-	if autoSaveEnabled then saveConfig() end
 end)
 coinGroup:CreateToggle("Farm Coin", false, function(state)
 	if state then
-		if killAuraEnabled or sheriffLoopEnabled then
+		if killAuraEnabled then
 			farmEnabled = false stopFarm()
 			library:Addnotification({title = "Warning", desc = "Turn off Kill Aura & Sheriff Loop before farming", duration = 5})
 			return
 		end
 		farmEnabled = true farmPausedByMurder = false startFarm()
 	else stopFarm() end
-	if autoSaveEnabled then saveConfig() end
 end)
-coinGroup:CreateSlider("Tween Speed", 1, 10, 3, function(v) farmSpeed = v if autoSaveEnabled then saveConfig() end end)
-sheriffCounterGroup:CreateToggle("Auto Kill Murder", false, function(state)
-	if state then
-		if farmEnabled then
-			sheriffLoopEnabled = false stopSheriffLoopInternal()
-			library:Addnotification({title = "Warning", desc = "Farm Coin is ON! Turn off Farm before using Sheriff Loop", duration = 5})
-			return
-		end
-		sheriffLoopEnabled = true startSheriffLoop()
-	else stopSheriffLoop() end
-	if autoSaveEnabled then saveConfig() end
-end)
+coinGroup:CreateSlider("Tween Speed", 1, 10, 3, function(v) farmSpeed = v end)
 sheriffCounterGroup:CreateToggle("Get Gun", false, function(state)
 	mapHREnabled = state
 	if state then startMapHRPButton() else stopMapHRPButton() end
-	if autoSaveEnabled then saveConfig() end
 end)
 avoidGroup:CreateToggle("Avoid Murder", false, function(state)
 	avoidEnabled = state
 	if state then startAvoid() else stopAvoid() end
-	if autoSaveEnabled then saveConfig() end
 end)
 avoidGroup:CreateInput("Avoid Distance", "40", function(text)
 	local num = tonumber(text)
-	if num then avoidDistance = num if autoSaveEnabled then saveConfig() end end
+	if num then avoidDistance = num end
 end)
 miscGroup:CreateButton("Anti Lag", function() doAntiLag() end)
 miscGroup:CreateButton("Anti Fling", function()
@@ -1468,44 +1321,37 @@ end)
 miscGroup:CreateToggle("Anti Void", false, function(state)
 	antiVoidEnabled = state
 	if state then startAntiVoid() else stopAntiVoid() end
-	if autoSaveEnabled then saveConfig() end
 end)
 movementGroup:CreateToggle("Enable WalkSpeed", false, function(s)
 	walkSpeedEnabled = s
 	if s then startMovement() else stopMovement() end
-	if autoSaveEnabled then saveConfig() end
 end)
 movementGroup:CreateInput("Value", "16", function(t)
 	local n = tonumber(t)
-	if n then walkSpeedValue = math.clamp(n, 1, 500) if walkSpeedEnabled then startMovement() end if autoSaveEnabled then saveConfig() end end
+	if n then walkSpeedValue = math.clamp(n, 1, 500) if walkSpeedEnabled then startMovement() end end
 end)
 movementGroup:CreateToggle("Enable JumpPower", false, function(s)
 	jumpEnabled = s
 	if s then startMovement() else stopMovement() end
-	if autoSaveEnabled then saveConfig() end
 end)
 movementGroup:CreateInput("Value", "50", function(t)
 	local n = tonumber(t)
-	if n then jumpValue = math.clamp(n, 1, 500) if jumpEnabled then startMovement() end if autoSaveEnabled then saveConfig() end end
+	if n then jumpValue = math.clamp(n, 1, 500) if jumpEnabled then startMovement() end end
 end)
 utilityGroup:CreateToggle("Noclip", false, function(s)
 	if s then startNoclip() else stopNoclip() end
-	if autoSaveEnabled then saveConfig() end
 end)
 utilityGroup:CreateToggle("Infinite Jump", false, function(s)
 	infJumpEnabled = s
 	if s then startInfJump() else stopInfJump() end
-	if autoSaveEnabled then saveConfig() end
 end)
 utilityGroup:CreateToggle("X-Ray", false, function(s)
 	xrayEnabled = s
 	if s then startXray() else stopXray() end
-	if autoSaveEnabled then saveConfig() end
 end)
 utilityGroup:CreateToggle("Fullbright", false, function(s)
 	fullbrightEnabled = s
 	if s then startFullbright() else stopFullbright() end
-	if autoSaveEnabled then saveConfig() end
 end)
 teleportGroup:CreateButton("TP to Safe Platform", function()
 	local part = createSafePart()
@@ -1541,20 +1387,21 @@ teleportGroup:CreateButton("TP to Sheriff", function()
 		if hrp then hrp.CFrame = s.Character.HumanoidRootPart.CFrame * CFrame.new(0,0,2) end
 	else library:Addnotification({title="Teleport", desc="Sheriff not found", duration=3}) end
 end)
-aimbotGroup:CreateDropdown({text = "Target Role", list = {"Murder","Sheriff","Innocent"}, Default = "Murder", multi = false, callback = function(sel)
-	local v = sel
-	if type(sel) == "table" then v = sel[1] end
-	aimbotRole = tostring(v)
-	if autoSaveEnabled then saveConfig() end
-end})
+aimbotGroup:CreateToggle("Aimbot Murder", false, function(s)
+	aimbotMurderEnabled = s
+end)
+aimbotGroup:CreateToggle("Aimbot Sheriff", false, function(s)
+	aimbotSheriffEnabled = s
+end)
+aimbotGroup:CreateToggle("Aimbot Innocent", false, function(s)
+	aimbotInnocentEnabled = s
+end)
 aimbotGroup:CreateSlider("Aim Prediction", 0, 5, 0, function(v)
 	aimbotPrediction = v
-	if autoSaveEnabled then saveConfig() end
 end)
 aimbotGroup:CreateToggle("Enable Aimbot", false, function(s)
 	aimbotEnabled = s
 	if s then startAimbotLoop() else stopAimbotLoop() if aimbotInfoGui then aimbotInfoGui:Destroy() aimbotInfoGui=nil end end
-	if autoSaveEnabled then saveConfig() end
 end)
 trollGroup:CreateButton("Execute Touch Fling", function()
 	if flingExecuted then
@@ -1579,7 +1426,6 @@ trollGroup:CreateToggle("Fling Murder", false, function(s)
 		stopTrollMurderLoop()
 		library:Addnotification({title="Fling", desc="Fling Murder OFF", duration=2})
 	end
-	if autoSaveEnabled then saveConfig() end
 end)
 trollGroup:CreateToggle("Fling Sheriff", false, function(s)
 	trollSheriffEnabled = s
@@ -1594,61 +1440,11 @@ trollGroup:CreateToggle("Fling Sheriff", false, function(s)
 		stopTrollSheriffLoop()
 		library:Addnotification({title="Fling", desc="Fling Sheriff OFF", duration=2})
 	end
-	if autoSaveEnabled then saveConfig() end
 end)
-
-uiGroup:CreateToggle("Auto Save Config", false, function(state)
-	autoSaveEnabled = state
-	if state then
-		if writefile then
-			saveConfig()
-			library:Addnotification({title="Auto Save", desc="Auto Save ON - Config will auto save on every value change", duration=4})
-		else
-			library:Addnotification({title="Auto Save", desc="Executor does not support writefile", duration=3})
-		end
-	else
-		library:Addnotification({title="Auto Save", desc="Auto Save OFF", duration=2})
-	end
-end)
-uiGroup:CreateButton("Save Config Now", function()
-	local was = autoSaveEnabled
-	autoSaveEnabled = true
-	saveConfig()
-	autoSaveEnabled = was
-	library:Addnotification({title="Config", desc="Config saved to "..ConfigFileName, duration=3})
-end)
-uiGroup:CreateButton("Load Config", function()
-	local cfg = loadConfig()
-	if cfg then
-		murderEnabled = cfg.murderEnabled or false
-		sheriffEnabled = cfg.sheriffEnabled or false
-		innocentEnabled = cfg.innocentEnabled or false
-		espGunEnabled = cfg.espGunEnabled or false
-		farmSpeed = cfg.farmSpeed or 3
-		avoidDistance = cfg.avoidDistance or 40
-		walkSpeedValue = cfg.walkSpeedValue or 16
-		jumpValue = cfg.jumpValue or 50
-		aimbotRole = cfg.aimbotRole or "Murder"
-		aimbotPrediction = cfg.aimbotPrediction or 0
-		library:Addnotification({title="Config", desc="Config loaded! Please re-enable toggles", duration=3})
-	else
-		library:Addnotification({title="Config", desc="No config file found", duration=3})
-	end
-end)
-uiGroup:CreateButton("Delete Config", function()
-	if delfile and isfile and isfile(ConfigFileName) then
-		delfile(ConfigFileName)
-		library:Addnotification({title="Config", desc="Config deleted", duration=3})
-	else
-		library:Addnotification({title="Config", desc="No file to delete or executor not supported", duration=3})
-	end
-end)
-uiGroup:CreateDivider("")
 uiGroup:CreateButton("Reload UI", function()
 	pcall(function() stopTP() end)
 	pcall(function() stopFarm() end)
-	pcall(function() stopSheriffLoop() end)
-	pcall(function() stopAvoid() end)
+		pcall(function() stopAvoid() end)
 	pcall(function() stopAntiVoid() end)
 	pcall(function() stopMovement() end)
 	pcall(function() setNoclip(false) end)
@@ -1668,20 +1464,11 @@ uiGroup:CreateButton("Reload UI", function()
 	pcall(function() if farmPart then farmPart:Destroy() farmPart=nil end end)
 	pcall(function() if platformPart then platformPart:Destroy() platformPart=nil end end)
 	murderEnabled = false sheriffEnabled = false innocentEnabled = false
-	killAuraEnabled = false farmEnabled = false sheriffLoopEnabled = false
+	killAuraEnabled = false farmEnabled = false 
 	mapHREnabled = false avoidEnabled = false antiVoidEnabled = false
 	walkSpeedEnabled = false jumpEnabled = false noclipEnabled = false
 	infJumpEnabled = false xrayEnabled = false fullbrightEnabled = false
 	aimbotEnabled = false trollMurderEnabled = false trollSheriffEnabled = false
 	task.wait(0.3)
 	loadstring(game:HttpGet("https://github.com/XVC-THE-CODER/Renux-Hub/releases/latest/download/loader.lua",true))()
-end)
-
-task.spawn(function()
-	task.wait(1.5)
-	local cfg = loadConfig()
-	if cfg and cfg.autoSaveEnabled then
-		autoSaveEnabled = true
-		library:Addnotification({title="Auto Save", desc="Loaded previous config, Auto Save is ON", duration=3})
-	end
 end)
