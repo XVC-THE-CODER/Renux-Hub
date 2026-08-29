@@ -7,10 +7,30 @@ local PlaceScripts = {
 }
 
 local FallbackLink = "https://pastebin.com/raw/LvRLf96s"
+local BackupLink = "https://raw.githubusercontent.com/XVC-THE-CODER/Renux-Hub/refs/heads/main/setting/backup.lua"
 local currentPlaceId = game.PlaceId
 
+local function TryLoad(url)
+    local success, code = pcall(function()
+        return game:HttpGet(url)
+    end)
+    if not success or not code or code == "" then
+        return false
+    end
+    local success2 = pcall(function()
+        loadstring(code)()
+    end)
+    return success2
+end
+
 if PlaceScripts[currentPlaceId] then
-    loadstring(game:HttpGet(PlaceScripts[currentPlaceId]))()
+    if not TryLoad(PlaceScripts[currentPlaceId]) then
+        if not TryLoad(FallbackLink) then
+            TryLoad(BackupLink)
+        end
+    end
 else
-    loadstring(game:HttpGet(FallbackLink))()
+    if not TryLoad(FallbackLink) then
+        TryLoad(BackupLink)
+    end
 end
