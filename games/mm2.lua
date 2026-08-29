@@ -1294,7 +1294,7 @@ teleportGroup:CreateButton("TP to Sheriff", function()
 	local s = getSheriffPlayer()
 	if s and s.Character and s.Character:FindFirstChild("HumanoidRootPart") then local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") if hrp then hrp.CFrame = s.Character.HumanoidRootPart.CFrame * CFrame.new(0,0,2) end end
 end)
-aimbotGroup:CreateToggle("Aimbot Murder", true, function(s) aimbotMurderEnabled = s end)
+aimbotGroup:CreateToggle("Aimbot Murder", false, function(s) aimbotMurderEnabled = s end)
 aimbotGroup:CreateToggle("Aimbot Sheriff", false, function(s) aimbotSheriffEnabled = s end)
 aimbotGroup:CreateToggle("Aimbot Innocent", false, function(s) aimbotInnocentEnabled = s end)
 aimbotGroup:CreateSlider("Aim Prediction", 0, 5, 0, function(v) aimbotPrediction = v end)
