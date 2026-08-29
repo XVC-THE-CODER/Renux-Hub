@@ -1,11 +1,3 @@
-local function anti_cheat()
-    pcall(function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/SCRIPTHUB-dev-god/anti-system/refs/heads/main/anti-staff.lua"))()
-    end)
-end
-
-anti_cheat()
-
 local PlaceScripts = {
     [537413528] = "https://raw.githubusercontent.com/XVC-THE-CODER/Renux-Hub/refs/heads/main/games/babft.lua",
     [90568084448279] = "https://raw.githubusercontent.com/XVC-THE-CODER/Renux-Hub/refs/heads/main/games/one-tap.lua",
