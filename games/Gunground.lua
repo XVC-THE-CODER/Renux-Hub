@@ -54,7 +54,7 @@ local Window = Library:CreateWindow({
 	NotifySide = "Right",
 })
 
-local DraggableLabel = Library:AddDraggableLabel("Renux Hub | flick")
+local DraggableLabel = Library:AddDraggableLabel("Renux Hub | gun ground")
 
 local Tab = Window:AddTab("support", "info")
 local infoGroupBox = Tab:AddLeftGroupbox("info", "info")
