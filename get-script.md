@@ -5,11 +5,11 @@ loadstring(game:HttpGet("https://github.com/XVC-THE-CODER/Renux-Hub/releases/lat
 ---
 **game support**
 [working]
-- build a boat for treasures 
-- gun ground ffa
-- one tap
-- hide and seek extreme
-- murder mystery 2 (nothing update)
+- build a boat for treasures (v1.2)
+- gun ground ffa (v1.0)
+- one tap (v1.0)
+- hide and seek extreme (v1.2)
+- murder mystery 2 (v1.3)
 ---
 [need update]
 - nothing 
