@@ -10,6 +10,16 @@ local FallbackLink = "https://pastebin.com/raw/LvRLf96s"
 local BackupLink = "https://raw.githubusercontent.com/XVC-THE-CODER/Renux-Hub/refs/heads/main/setting/backup.lua"
 local currentPlaceId = game.PlaceId
 
+local function Notif(title, text, dur)
+    pcall(function()
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = title,
+            Text = text,
+            Duration = dur or 5
+        })
+    end)
+end
+
 local function TryLoad(url)
     local success, code = pcall(function()
         return game:HttpGet(url)
@@ -24,25 +34,18 @@ local function TryLoad(url)
 end
 
 if PlaceScripts[currentPlaceId] then
+    Notif("INFO", "Game Supported! Loading script...", 3.5)
+    
     if not TryLoad(PlaceScripts[currentPlaceId]) then
+        Notif("WARNING", "Failed to load main script, trying fallback...", 3.5)
         if not TryLoad(FallbackLink) then
             TryLoad(BackupLink)
         end
     end
 else
+    Notif("WARNING", "Game Not Supported!", 3.5)
+    
     if not TryLoad(FallbackLink) then
         TryLoad(BackupLink)
     end
 end
-
-local function Notif(title, text, dur)
-    pcall(function()
-        game:GetService("StarterGui"):SetCore("SendNotification", {
-            Title = title,
-            Text = text,
-            Duration = dur or 5
-        })
-    end)
-end
-
-Notif("INFO", "script has loaded", 3.5)
