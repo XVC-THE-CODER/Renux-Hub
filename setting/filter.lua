@@ -34,3 +34,15 @@ else
         TryLoad(BackupLink)
     end
 end
+
+local function Notif(title, text, dur)
+    pcall(function()
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = title,
+            Text = text,
+            Duration = dur or 5
+        })
+    end)
+end
+
+Notif("INFO", "script has loaded", 3.5)
