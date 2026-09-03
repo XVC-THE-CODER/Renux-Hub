@@ -6,8 +6,7 @@ local UserInputService = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
 local LocalPlayer = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera
-local library = loadstring(game:HttpGet("https://github.com/SCRIPTHUB-dev-god/User-Interface/releases/latest/download/wave-ui.lua"))()
-
+local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/SCRIPTHUB-dev-god/User-Interface/main/library/wave-ui.lua", true))()
 local window = library:CreateWindow({
     title = "Renux hub",
     desc = "Murder Mystery 2",
@@ -15,13 +14,11 @@ local window = library:CreateWindow({
     info = false,
     transparency = 0.12
 })
-
 pcall(function()
     window:AddTag({title = "keyless", canclicked = false, callback = function() end})
     window:AddTag({title = "made in indonesia", canclicked = false, callback = function() end})
     window:SetMovingText("script version 1.3")
 end)
-
 local InfoTab = library:CreateTab("Information")
 local Tab = library:CreateTab("Main")
 local MiscTab = library:CreateTab("Misc")
@@ -43,7 +40,6 @@ local utilityGroup = MiscTab:CreateGroupBox("Utility", "right", "close")
 local aimbotGroup = AimbotTab:CreateGroupBox("Aimbot", "allside", "close")
 local trollGroup = TrollTab:CreateGroupBox("Fling Player", "allside", "close")
 local uiGroup = SettingTab:CreateGroupBox("UI", "allside", "open")
-
 local murderEnabled, sheriffEnabled, innocentEnabled = false, false, false
 local espGunEnabled = false
 local espMaxDistance = 1000
@@ -67,15 +63,12 @@ local loopGunPlatform = nil
 local antiLagEnabled, antiLagConn = false, nil
 local mapHRGui, mapHRAutoSaveConn, mapHRSavedCFrame, mapHRTPing = nil, nil, nil, false
 local autoGetGunDisabledByDeath = false
-local mapHRList = {"Pier","Beach Resort","Yacht","Bank 2","Bio Lab","Factory","Hospital 3","Hotel 2","House 2","Mansion 2","Military Base","nStudio","NSOffice","Office 3","Police Station","Research Facility","Workplace","Bank 1","Hospital 1","Hospital 2","Hotel 1","House 1","Mansion 1","Office 1","Office 2","Research Facility 1","Haunted House","Log Cabin","Workshop"}
-
+local mapHRList = {"Bank 2","Bio Lab","Factory","Hospital 3","Hotel 2","House 2","Mansion 2","Military Base","nStudio","NSOffice","Office 3","Police Station","Research Facility","Workplace","Bank 1","Hospital 1","Hospital 2","Hotel 1","House 1","Mansion 1","Office 1","Office 2","Research Facility 1","Haunted House","Log Cabin","Workshop"}
 local function normalizeMapName(s)
     return string.lower(tostring(s)):gsub("_",""):gsub(" ",""):gsub("-","")
 end
-
 local mapHRSet = {}
 for _, n in ipairs(mapHRList) do mapHRSet[normalizeMapName(n)] = true end
-
 local avoidEnabled, avoidDistance, avoidConn = false, 25, nil
 local antiVoidEnabled, antiVoidConn, lastSafePos = false, nil, nil
 local safePlatformPart = nil
@@ -99,11 +92,9 @@ local votePadEnabled, votePadIndex, votePadLoop, votePadCharConn, votePadTPed = 
 local startTime = tick()
 local fps, frameCount, lastFpsTick = 0, 0, tick()
 local lastPredictions = {}
-
 local function isValidOffset()
     return loopGunOffset > avoidDistance
 end
-
 local function checkOffsetVsAvoid()
     if avoidEnabled and loopGunEnabled then
         if not isValidOffset() then
@@ -113,7 +104,6 @@ local function checkOffsetVsAvoid()
         end
     end
 end
-
 RunService.RenderStepped:Connect(function()
     frameCount = frameCount + 1
     if tick() - lastFpsTick >= 1 then
@@ -122,7 +112,6 @@ RunService.RenderStepped:Connect(function()
         lastFpsTick = tick()
     end
 end)
-
 local function shortenName(name, maxLen)
     maxLen = maxLen or 10
     if #name > maxLen then
@@ -131,7 +120,6 @@ local function shortenName(name, maxLen)
         return name
     end
 end
-
 local function setNoclip(state)
     if state ~= nil then
         noclipEnabled = state
@@ -170,16 +158,13 @@ local function setNoclip(state)
         end
     end
 end
-
 UserInputService.InputBegan:Connect(function(input, gp)
     if gp then return end
     if input.KeyCode == Enum.KeyCode.N then
         setNoclip()
     end
 end)
-
 getgenv().ToggleNoclip = setNoclip
-
 local function hasTool(plr, keyword)
     keyword = string.lower(keyword)
     local bp = plr:FindFirstChild("Backpack")
@@ -200,22 +185,18 @@ local function hasTool(plr, keyword)
     end
     return false
 end
-
 local function isAlive(plr)
     local ch = plr and plr.Character
     local hum = ch and ch:FindFirstChildOfClass("Humanoid")
     local hrp = ch and ch:FindFirstChild("HumanoidRootPart")
     return hum and hrp and hum.Health > 0
 end
-
 local function hasKnifeInBackpack()
     return hasTool(LocalPlayer, "knife")
 end
-
 local function hasGunInBackpack()
     return hasTool(LocalPlayer, "gun")
 end
-
 local function getAnyAliveInTP()
     local myHrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
     if not myHrp then return nil end
@@ -229,7 +210,6 @@ local function getAnyAliveInTP()
     end
     return nil
 end
-
 local function getNearestPlayer()
     local myHrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
     if not myHrp then return nil end
@@ -248,7 +228,6 @@ local function getNearestPlayer()
     end
     return near
 end
-
 local function getMurderPlayer()
     for _, plr in ipairs(Players:GetPlayers()) do
         if plr ~= LocalPlayer and isAlive(plr) and hasTool(plr, "knife") then
@@ -257,7 +236,6 @@ local function getMurderPlayer()
     end
     return nil
 end
-
 local function getSheriffPlayer()
     for _, plr in ipairs(Players:GetPlayers()) do
         if plr ~= LocalPlayer and isAlive(plr) and hasTool(plr, "gun") then
@@ -266,7 +244,6 @@ local function getSheriffPlayer()
     end
     return nil
 end
-
 local function isAnyPlayerHasTool()
     for _, plr in ipairs(Players:GetPlayers()) do
         if isAlive(plr) and (hasTool(plr, "knife") or hasTool(plr, "gun")) then
@@ -275,7 +252,6 @@ local function isAnyPlayerHasTool()
     end
     return false
 end
-
 local function isAllPlayersNoTool()
     for _, plr in ipairs(Players:GetPlayers()) do
         if isAlive(plr) and (hasTool(plr, "knife") or hasTool(plr, "gun")) then
@@ -284,7 +260,6 @@ local function isAllPlayersNoTool()
     end
     return true
 end
-
 local function getInnocentPlayers()
     local arr = {}
     for _, plr in ipairs(Players:GetPlayers()) do
@@ -294,7 +269,6 @@ local function getInnocentPlayers()
     end
     return arr
 end
-
 local function getAimbotTargets()
     local arr = {}
     if aimbotMurderEnabled then
@@ -312,7 +286,6 @@ local function getAimbotTargets()
     end
     return arr
 end
-
 local function getNearestAimbotTarget()
     local myHrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
     if not myHrp then return nil end
@@ -330,7 +303,6 @@ local function getNearestAimbotTarget()
     end
     return near
 end
-
 local function hasWallBetween(origin, targetPos, ignoreChar)
     local dir = targetPos - origin
     local params = RaycastParams.new()
@@ -348,7 +320,6 @@ local function hasWallBetween(origin, targetPos, ignoreChar)
     end
     return false
 end
-
 local function getAutoPredictedPosition(targetPlr, myHrp)
     local tChar = targetPlr.Character
     if not tChar then return nil end
@@ -379,7 +350,6 @@ local function getAutoPredictedPosition(targetPlr, myHrp)
     lastPredictions[id] = rawPred
     return rawPred
 end
-
 local function createESP(plr)
     if espData[plr] then return end
     local ok, hl = pcall(function()
@@ -412,7 +382,6 @@ local function createESP(plr)
         espData[plr] = {hl = hl, txtRole = txtRole, txtName = txtName}
     end
 end
-
 local function removeESP(plr)
     local d = espData[plr]
     if d then
@@ -422,7 +391,6 @@ local function removeESP(plr)
         espData[plr] = nil
     end
 end
-
 RunService.RenderStepped:Connect(function()
     pcall(function()
         local myHrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
@@ -490,9 +458,7 @@ RunService.RenderStepped:Connect(function()
         end
     end)
 end)
-
 Players.PlayerRemoving:Connect(function(plr) removeESP(plr) end)
-
 local function findCoins()
     local arr = {}
     for _, o in ipairs(Workspace:GetDescendants()) do
@@ -502,7 +468,6 @@ local function findCoins()
     end
     return arr
 end
-
 local function getNearestCoin(fromPos)
     local coins = findCoins()
     local near, md = nil, math.huge
@@ -517,7 +482,6 @@ local function getNearestCoin(fromPos)
     end
     return near
 end
-
 local function getContestingPlayer(coin)
     if not coin or not coin.Parent then return nil end
     for _, plr in ipairs(Players:GetPlayers()) do
@@ -530,11 +494,9 @@ local function getContestingPlayer(coin)
     end
     return nil
 end
-
 local function isCoinContested(coin)
     return getContestingPlayer(coin) ~= nil
 end
-
 local function getThirdFarFromPlayer(contestedCoin)
     local contestPlr = getContestingPlayer(contestedCoin)
     if not contestPlr then return nil end
@@ -552,7 +514,6 @@ local function getThirdFarFromPlayer(contestedCoin)
     if #filtered >= 3 then return filtered[3] elseif #filtered >= 1 then return filtered[1] end
     return nil
 end
-
 local function getFarthestUncontested(fromPos)
     local coins = findCoins()
     local far, md = nil, -1
@@ -567,7 +528,6 @@ local function getFarthestUncontested(fromPos)
     end
     return far
 end
-
 local function getNearestUncontested(fromPos)
     local coins = findCoins()
     local near, md = nil, math.huge
@@ -582,7 +542,6 @@ local function getNearestUncontested(fromPos)
     end
     return near
 end
-
 local function enableNoClipTransparent()
     savedParts = {}
     for _, o in ipairs(Workspace:GetDescendants()) do
@@ -620,7 +579,6 @@ local function enableNoClipTransparent()
         end
     end)
 end
-
 local function restoreParts()
     if farmAddConn then
         farmAddConn:Disconnect()
@@ -636,7 +594,6 @@ local function restoreParts()
     end
     savedParts = {}
 end
-
 local function createFarmPart()
     if farmPart then farmPart:Destroy() end
     if platformPart then platformPart:Destroy() end
@@ -661,7 +618,6 @@ local function createFarmPart()
     end
     return farmPart
 end
-
 local function stopFarm()
     farmEnabled = false
     farmPausedByMurder = false
@@ -689,7 +645,6 @@ local function stopFarm()
         hum:ChangeState(Enum.HumanoidStateType.Running)
     end
 end
-
 local function ragdollAndFarm()
     local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
     if hum then
@@ -702,7 +657,6 @@ local function ragdollAndFarm()
         end)
     end
 end
-
 local function ensureRagdoll()
     local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
     if hum and hum:GetState() ~= Enum.HumanoidStateType.Physics then
@@ -713,7 +667,6 @@ local function ensureRagdoll()
         end)
     end
 end
-
 local function findLobbySpawn()
     for _, obj in ipairs(Workspace:GetDescendants()) do
         if obj:IsA("SpawnLocation") then return obj end
@@ -732,7 +685,6 @@ local function findLobbySpawn()
     end
     return nil
 end
-
 local function isPlayerTeleportedByServer()
     if getMurderPlayer() or getSheriffPlayer() then return true end
     local spawn = findLobbySpawn()
@@ -746,7 +698,6 @@ local function isPlayerTeleportedByServer()
     end
     return true
 end
-
 local function startFarm()
     if farmPausedByMurder then return end
     if farmConn then farmConn:Disconnect() end
@@ -837,7 +788,6 @@ local function startFarm()
         end
     end)
 end
-
 local function findMediumFloorFromMurder(murderPos)
     local candidates = {}
     for _, obj in ipairs(Workspace:GetDescendants()) do
@@ -862,7 +812,6 @@ local function findMediumFloorFromMurder(murderPos)
     local mid = math.clamp(math.floor(#candidates/2),1,#candidates)
     return candidates[mid].part
 end
-
 local function startAvoid()
     if avoidConn then avoidConn:Disconnect() end
     avoidConn = RunService.Heartbeat:Connect(function()
@@ -887,14 +836,12 @@ local function startAvoid()
         end
     end)
 end
-
 local function stopAvoid()
     if avoidConn then
         avoidConn:Disconnect()
         avoidConn = nil
     end
 end
-
 local function startTP()
     if killAuraConn then
         killAuraConn:Disconnect()
@@ -951,7 +898,6 @@ local function startTP()
         VirtualInputManager:SendMouseButtonEvent(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2, 0, false, game, 0)
     end)
 end
-
 local function stopTP()
     killAuraEnabled = false
     if killAuraConn then
@@ -965,7 +911,6 @@ local function stopTP()
     currentTarget = nil
     pcall(function() UserInputService.MouseBehavior = Enum.MouseBehavior.Default end)
 end
-
 local function hrpHasParticle(hrp)
     if not hrp or not hrp.Parent then return false end
     for _, c in ipairs(hrp:GetChildren()) do if c:IsA("ParticleEmitter") then return true end end
@@ -973,7 +918,6 @@ local function hrpHasParticle(hrp)
     for _, c in ipairs(hrp.Parent:GetDescendants()) do if c:IsA("ParticleEmitter") then return true end end
     return false
 end
-
 local function getMapNameFromHRP(hrp)
     if not hrp then return "Unknown Map" end
     local cur = hrp.Parent
@@ -985,7 +929,6 @@ local function getMapNameFromHRP(hrp)
     end
     return "Unknown Map"
 end
-
 local function findMapFolder(normalizedName)
     for _, obj in ipairs(Workspace:GetChildren()) do
         if normalizeMapName(obj.Name) == normalizedName then
@@ -994,7 +937,6 @@ local function findMapFolder(normalizedName)
     end
     return nil
 end
-
 local function findHRPInMaps()
     local allRaggyCandidates = {}
     for _, mapName in ipairs(mapHRList) do
@@ -1057,7 +999,6 @@ local function findHRPInMaps()
     end
     return nil
 end
-
 local function startSaveCFrame()
     if mapHRAutoSaveConn then return end
     local myHrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
@@ -1068,7 +1009,6 @@ local function startSaveCFrame()
         if hrp and hrp.Position.Y > -50 then mapHRSavedCFrame = hrp.CFrame end
     end)
 end
-
 local function stopSaveCFrameIfNeeded()
     if not mapHREnabled and not autoGetGunEnabled and not loopGunEnabled then
         if mapHRAutoSaveConn then
@@ -1079,7 +1019,6 @@ local function stopSaveCFrameIfNeeded()
         mapHRTPing = false
     end
 end
-
 local function startESPGun()
     if espGunLoop then pcall(function() task.cancel(espGunLoop) end) espGunLoop = nil end
     espGunWasFound = false
@@ -1148,7 +1087,6 @@ local function startESPGun()
         end
     end)
 end
-
 local function stopESPGun()
     espGunEnabled = false
     if espGunLoop then pcall(function() task.cancel(espGunLoop) end) espGunLoop = nil end
@@ -1157,7 +1095,6 @@ local function stopESPGun()
     espGunWasFound = false
     espGunLastHrp = nil
 end
-
 local function startLoopGun()
     if loopGunConn then
         loopGunConn:Disconnect()
@@ -1201,7 +1138,6 @@ local function startLoopGun()
         end
     end)
 end
-
 local function stopLoopGun()
     loopGunEnabled = false
     if loopGunConn then
@@ -1214,18 +1150,15 @@ local function stopLoopGun()
     end
     stopSaveCFrameIfNeeded()
 end
-
 local function isSpecialPart(obj)
     return obj == farmPart or obj == platformPart or obj == safePlatformPart or obj == loopGunPlatform
 end
-
 local function isCharPart(obj)
     for _, plr in ipairs(Players:GetPlayers()) do
         if plr.Character and obj:IsDescendantOf(plr.Character) then return true end
     end
     return false
 end
-
 local function applyAntiLagRules(obj)
     if not obj or not obj.Parent then return end
     if isSpecialPart(obj) then return end
@@ -1265,7 +1198,6 @@ local function applyAntiLagRules(obj)
         end
     end
 end
-
 local function startAntiLagAutoRefresh()
     if antiLagConn then antiLagConn:Disconnect() antiLagConn = nil end
     antiLagEnabled = true
@@ -1301,7 +1233,6 @@ local function startAntiLagAutoRefresh()
         end
     end)
 end
-
 local function stopAntiLagAutoRefresh()
     antiLagEnabled = false
     if antiLagConn then
@@ -1309,85 +1240,35 @@ local function stopAntiLagAutoRefresh()
         antiLagConn = nil
     end
 end
-
-local function findVotePadFolder()
-    for _, obj in ipairs(Workspace:GetChildren()) do
-        if normalizeMapName(obj.Name):find("votepad") then return obj end
-    end
+local function findDetectors()
+    local detectors = {}
     for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("Folder") or obj:IsA("Model") then
-            local n = normalizeMapName(obj.Name)
-            if n:find("votepad") or (n:find("vote") and n:find("pad")) then
-                return obj
+        if obj:IsA("BasePart") then
+            local lname = string.lower(obj.Name)
+            if lname == "detector1" or lname == "detector2" or lname == "detector3" then
+                table.insert(detectors, obj)
             end
         end
     end
-    return nil
+    table.sort(detectors, function(a,b) return a.Name < b.Name end)
+    return detectors
 end
-
-local function findVotePads()
-    local folder = findVotePadFolder()
-    local pads = {}
-    if folder then
-        for _, child in ipairs(folder:GetChildren()) do
-            if child:IsA("BasePart") and normalizeMapName(child.Name):find("pad") then
-                table.insert(pads, child)
-            elseif child:IsA("Model") then
-                for _, d in ipairs(child:GetDescendants()) do
-                    if d:IsA("BasePart") and normalizeMapName(d.Name):find("pad") then
-                        table.insert(pads, d)
-                        break
-                    end
-                end
-            end
-        end
-        if #pads == 0 then
-            for _, d in ipairs(folder:GetDescendants()) do
-                if d:IsA("BasePart") and normalizeMapName(d.Name):find("pad") then
-                    table.insert(pads, d)
-                end
-            end
-        end
-    else
-        for _, obj in ipairs(Workspace:GetDescendants()) do
-            if obj:IsA("BasePart") and normalizeMapName(obj.Name):find("pad") then
-                local pn = normalizeMapName(obj.Parent.Name)
-                if pn:find("vote") then
-                    table.insert(pads, obj)
-                end
-            end
-        end
-    end
-    table.sort(pads, function(a,b) return a.Name < b.Name end)
-    local unique, seen = {}, {}
-    for _, p in ipairs(pads) do
-        if not seen[p] then
-            seen[p] = true
-            table.insert(unique, p)
-        end
-        if #unique >= 3 then break end
-    end
-    return unique
+local function getDetectorByIndex(idx)
+    local list = findDetectors()
+    if #list == 0 then return nil end
+    idx = math.clamp(idx, 1, #list)
+    return list[idx]
 end
-
-local function getVotePadByIndex(idx)
-    local pads = findVotePads()
-    if #pads == 0 then return nil end
-    idx = math.clamp(idx, 1, #pads)
-    return pads[idx]
-end
-
-local function tpToVotePad(idx)
-    local pad = getVotePadByIndex(idx)
-    if not pad then return false end
+local function tpToDetector(idx)
+    local part = getDetectorByIndex(idx)
+    if not part then return false end
     local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
     if hrp then
-        hrp.CFrame = CFrame.new(pad.Position + Vector3.new(0,3,0))
+        hrp.CFrame = CFrame.new(part.Position + Vector3.new(0, 3, 0))
         return true
     end
     return false
 end
-
 local function isAnyOtherPlayerHasWeapon()
     for _, plr in ipairs(Players:GetPlayers()) do
         if plr ~= LocalPlayer and isAlive(plr) then
@@ -1398,21 +1279,20 @@ local function isAnyOtherPlayerHasWeapon()
     end
     return false
 end
-
 local function startVotePad()
     votePadTPed = false
     if votePadCharConn then votePadCharConn:Disconnect() votePadCharConn = nil end
     votePadCharConn = LocalPlayer.CharacterAdded:Connect(function(char)
         char:WaitForChild("HumanoidRootPart", 5)
         task.wait(0.5)
-        if votePadEnabled then tpToVotePad(votePadIndex) end
+        if votePadEnabled then tpToDetector(votePadIndex) end
     end)
     if votePadLoop then pcall(function() task.cancel(votePadLoop) end) votePadLoop = nil end
     votePadLoop = task.spawn(function()
         while votePadEnabled do
             if not votePadTPed then
                 if not isAnyOtherPlayerHasWeapon() then
-                    local ok = tpToVotePad(votePadIndex)
+                    local ok = tpToDetector(votePadIndex)
                     if ok then votePadTPed = true end
                 end
             end
@@ -1420,14 +1300,12 @@ local function startVotePad()
         end
     end)
 end
-
 local function stopVotePad()
     votePadEnabled = false
     votePadTPed = false
     if votePadLoop then pcall(function() task.cancel(votePadLoop) end) votePadLoop = nil end
     if votePadCharConn then votePadCharConn:Disconnect() votePadCharConn = nil end
 end
-
 local function startMovement()
     if movementConn then movementConn:Disconnect() end
     movementConn = RunService.Heartbeat:Connect(function()
@@ -1445,7 +1323,6 @@ local function startMovement()
         end
     end)
 end
-
 local function stopMovement()
     if not walkSpeedEnabled and not jumpEnabled then
         if movementConn then
@@ -1463,7 +1340,6 @@ local function stopMovement()
         end
     end
 end
-
 local function makeDraggable(frame)
     local dragging, dragInput, dragStart, startPos
     local function update(input)
@@ -1489,7 +1365,6 @@ local function makeDraggable(frame)
         if input == dragInput and dragging then update(input) end
     end)
 end
-
 local function startAimbotLoop()
     if aimbotConn then aimbotConn:Disconnect() end
     if aimbotInfoConn then aimbotInfoConn:Disconnect() end
@@ -1575,7 +1450,6 @@ local function startAimbotLoop()
         aimbotInfoDist.Text = string.format("Dist: %.0f", dist)
     end)
 end
-
 local function stopAimbotLoop()
     if aimbotConn then
         aimbotConn:Disconnect()
@@ -1588,7 +1462,6 @@ local function stopAimbotLoop()
     aimbotCurrentTarget = nil
     lastPredictions = {}
 end
-
 local function makeTrollTiduran()
     local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
     if hum then
@@ -1601,7 +1474,6 @@ local function makeTrollTiduran()
         end)
     end
 end
-
 local function ensureTrollTiduran()
     local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
     if hum and hum:GetState() ~= Enum.HumanoidStateType.Physics then
@@ -1612,7 +1484,6 @@ local function ensureTrollTiduran()
         end)
     end
 end
-
 local function startTrollMurderLoop()
     if trollMurderConn then trollMurderConn:Disconnect() end
     makeTrollTiduran()
@@ -1635,7 +1506,6 @@ local function startTrollMurderLoop()
         myHrp.CFrame = CFrame.new(targetPos) * CFrame.Angles(math.rad(90), 0, 0) * CFrame.Angles(0, 0, time * 35)
     end)
 end
-
 local function stopTrollMurderLoop()
     if trollMurderConn then
         trollMurderConn:Disconnect()
@@ -1651,7 +1521,6 @@ local function stopTrollMurderLoop()
         hum:ChangeState(Enum.HumanoidStateType.Running)
     end
 end
-
 local function startTrollSheriffLoop()
     if trollSheriffConn then trollSheriffConn:Disconnect() end
     makeTrollTiduran()
@@ -1674,7 +1543,6 @@ local function startTrollSheriffLoop()
         myHrp.CFrame = CFrame.new(targetPos) * CFrame.Angles(math.rad(90), 0, 0) * CFrame.Angles(0, 0, time * 35)
     end)
 end
-
 local function stopTrollSheriffLoop()
     if trollSheriffConn then
         trollSheriffConn:Disconnect()
@@ -1690,7 +1558,6 @@ local function stopTrollSheriffLoop()
         hum:ChangeState(Enum.HumanoidStateType.Running)
     end
 end
-
 local function startMapHRPButton()
     if mapHRGui then
         mapHRGui:Destroy()
@@ -1736,7 +1603,6 @@ local function startMapHRPButton()
         mapHRTPing = false
     end)
 end
-
 local function stopMapHRPButton()
     if mapHRGui then
         mapHRGui:Destroy()
@@ -1744,7 +1610,6 @@ local function stopMapHRPButton()
     end
     stopSaveCFrameIfNeeded()
 end
-
 local function startAutoGetGun()
     if autoGetGunThread then pcall(function() task.cancel(autoGetGunThread) end) autoGetGunThread = nil end
     startSaveCFrame()
@@ -1775,7 +1640,6 @@ local function startAutoGetGun()
         end
     end)
 end
-
 local function stopAutoGetGun()
     autoGetGunEnabled = false
     if autoGetGunThread then
@@ -1784,7 +1648,6 @@ local function stopAutoGetGun()
     end
     stopSaveCFrameIfNeeded()
 end
-
 local function setupAutoGetGunDeathLogic()
     local function bindChar(char)
         local hum = char:WaitForChild("Humanoid", 5)
@@ -1821,18 +1684,14 @@ local function setupAutoGetGunDeathLogic()
         end
     end)
 end
-
 setupAutoGetGunDeathLogic()
-
 pcall(function()
     infoLeftGroup:Createinvite({name = "support", image = "10734897102", link = "https://discord.gg/mXnTVYYYsy"})
 end)
-
 local infoParaFrame
 pcall(function()
     infoParaFrame = infoRightGroup:CreateParagraph({title = "information", desc = "fps: 0\nplayer in server: 0\nTime: 00:00:00"})
 end)
-
 local infoDescLabel = nil
 task.wait(0.2)
 pcall(function()
@@ -1845,7 +1704,6 @@ pcall(function()
         end
     end
 end)
-
 task.spawn(function()
     while true do
         local elapsed = math.floor(tick() - startTime)
@@ -1861,7 +1719,6 @@ task.spawn(function()
         task.wait(0.3)
     end
 end)
-
 espGroup:CreateToggle("ESP Murder", false, function(s) murderEnabled = s end)
 espGroup:CreateToggle("ESP Sheriff", false, function(s) sheriffEnabled = s end)
 espGroup:CreateToggle("ESP Innocent", false, function(s) innocentEnabled = s end)
@@ -1869,7 +1726,6 @@ espGroup:CreateToggle("ESP Gun", false, function(s)
     espGunEnabled = s
     if s then startESPGun() else stopESPGun() end
 end)
-
 killGroup:CreateToggle("Kill All", false, function(state)
     if state then
         if farmEnabled then
@@ -1882,7 +1738,6 @@ killGroup:CreateToggle("Kill All", false, function(state)
         stopTP()
     end
 end)
-
 coinGroup:CreateToggle("Farm Coin", false, function(state)
     if state then
         if killAuraEnabled then
@@ -1898,14 +1753,11 @@ coinGroup:CreateToggle("Farm Coin", false, function(state)
         stopFarm()
     end
 end)
-
 coinGroup:CreateSlider("Tween Speed", 1, 10, 3, function(v) farmSpeed = v end)
-
 sheriffCounterGroup:CreateToggle("Get Gun", false, function(state)
     mapHREnabled = state
     if state then startMapHRPButton() else stopMapHRPButton() end
 end)
-
 sheriffCounterGroup:CreateToggle("Auto Get Gun", false, function(state)
     autoGetGunEnabled = state
     if state then
@@ -1915,9 +1767,7 @@ sheriffCounterGroup:CreateToggle("Auto Get Gun", false, function(state)
         stopAutoGetGun()
     end
 end)
-
 sheriffCounterGroup:CreateDivider()
-
 sheriffCounterGroup:CreateToggle("TP Behind Murder", false, function(state)
     loopGunEnabled = state
     if state then
@@ -1927,18 +1777,15 @@ sheriffCounterGroup:CreateToggle("TP Behind Murder", false, function(state)
         stopLoopGun()
     end
 end)
-
 sheriffCounterGroup:CreateSlider("TP Behind Murder Distance", 5, 45, 35, function(v)
     loopGunOffset = v
     checkOffsetVsAvoid()
 end)
-
 avoidGroup:CreateToggle("Avoid Murder", false, function(state)
     avoidEnabled = state
     if state then startAvoid() else stopAvoid() end
     checkOffsetVsAvoid()
 end)
-
 avoidGroup:CreateInput("Avoid Distance", "25", function(text)
     local num = tonumber(text)
     if num then
@@ -1946,17 +1793,14 @@ avoidGroup:CreateInput("Avoid Distance", "25", function(text)
         checkOffsetVsAvoid()
     end
 end)
-
-votePadGroup:CreateSlider("select place", 1, 3, 1, function(v)
+votePadGroup:CreateSlider("select detector", 1, 3, 1, function(v)
     votePadIndex = math.clamp(math.floor(v + 0.5), 1, 3)
-    if votePadEnabled and not isAnyOtherPlayerHasWeapon() then tpToVotePad(votePadIndex) end
+    if votePadEnabled and not isAnyOtherPlayerHasWeapon() then tpToDetector(votePadIndex) end
 end)
-
-votePadGroup:CreateToggle("Auto vote", false, function(state)
+votePadGroup:CreateToggle("Auto vote Detector", false, function(state)
     votePadEnabled = state
     if state then startVotePad() else stopVotePad() end
 end)
-
 miscGroup:CreateButton("Anti Lag", function()
     if antiLagEnabled then
         stopAntiLagAutoRefresh()
@@ -1966,11 +1810,9 @@ miscGroup:CreateButton("Anti Lag", function()
         library:Addnotification({title="Anti Lag", desc="Anti Lag Auto-Refresh ON - you not get gun sorry but bug", duration=3})
     end
 end)
-
 miscGroup:CreateButton("Anti Fling", function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/SCRIPTHUB-dev-god/main-scipt/refs/heads/main/byte/anti-fling.lua"))()
 end)
-
 miscGroup:CreateToggle("Anti Void", false, function(state)
     antiVoidEnabled = state
     if state then
@@ -2006,12 +1848,10 @@ miscGroup:CreateToggle("Anti Void", false, function(state)
         end
     end
 end)
-
 movementGroup:CreateToggle("Enable WalkSpeed", false, function(s)
     walkSpeedEnabled = s
     if s then startMovement() else stopMovement() end
 end)
-
 movementGroup:CreateInput("Value", "16", function(t)
     local n = tonumber(t)
     if n then
@@ -2019,12 +1859,10 @@ movementGroup:CreateInput("Value", "16", function(t)
         if walkSpeedEnabled then startMovement() end
     end
 end)
-
 movementGroup:CreateToggle("Enable JumpPower", false, function(s)
     jumpEnabled = s
     if s then startMovement() else stopMovement() end
 end)
-
 movementGroup:CreateInput("Value", "50", function(t)
     local n = tonumber(t)
     if n then
@@ -2032,11 +1870,9 @@ movementGroup:CreateInput("Value", "50", function(t)
         if jumpEnabled then startMovement() end
     end
 end)
-
 utilityGroup:CreateToggle("Noclip", false, function(s)
     if s then setNoclip(true) else setNoclip(false) end
 end)
-
 utilityGroup:CreateToggle("Infinite Jump", false, function(s)
     infJumpEnabled = s
     if s then
@@ -2054,7 +1890,6 @@ utilityGroup:CreateToggle("Infinite Jump", false, function(s)
         end
     end
 end)
-
 utilityGroup:CreateToggle("X-Ray", false, function(s)
     xrayEnabled = s
     if s then
@@ -2134,7 +1969,6 @@ utilityGroup:CreateToggle("X-Ray", false, function(s)
         xrayOriginal = {}
     end
 end)
-
 utilityGroup:CreateToggle("Fullbright", false, function(s)
     fullbrightEnabled = s
     if s then
@@ -2174,7 +2008,6 @@ utilityGroup:CreateToggle("Fullbright", false, function(s)
         if oldLighting.ExposureCompensation then Lighting.ExposureCompensation = oldLighting.ExposureCompensation end
     end
 end)
-
 teleportGroup:CreateButton("TP to Safe Platform", function()
     local part = Instance.new("Part")
     part.Name = "SafePlatform"
@@ -2190,7 +2023,6 @@ teleportGroup:CreateButton("TP to Safe Platform", function()
     local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
     if hrp and part then hrp.CFrame = CFrame.new(part.Position + Vector3.new(0,2,0)) end
 end)
-
 teleportGroup:CreateButton("TP to Lobby", function()
     local spawn
     for _, obj in ipairs(Workspace:GetDescendants()) do
@@ -2201,7 +2033,6 @@ teleportGroup:CreateButton("TP to Lobby", function()
         if hrp then hrp.CFrame = CFrame.new(spawn.Position + Vector3.new(0,3,0)) end
     end
 end)
-
 teleportGroup:CreateDivider("")
 teleportGroup:CreateButton("TP to Murder", function()
     local m = getMurderPlayer()
@@ -2210,7 +2041,6 @@ teleportGroup:CreateButton("TP to Murder", function()
         if hrp then hrp.CFrame = m.Character.HumanoidRootPart.CFrame * CFrame.new(0,0,2) end
     end
 end)
-
 teleportGroup:CreateButton("TP to Sheriff", function()
     local s = getSheriffPlayer()
     if s and s.Character and s.Character:FindFirstChild("HumanoidRootPart") then
@@ -2218,7 +2048,6 @@ teleportGroup:CreateButton("TP to Sheriff", function()
         if hrp then hrp.CFrame = s.Character.HumanoidRootPart.CFrame * CFrame.new(0,0,2) end
     end
 end)
-
 aimbotGroup:CreateToggle("Aimbot Murder", false, function(s) aimbotMurderEnabled = s end)
 aimbotGroup:CreateToggle("Aimbot Sheriff", false, function(s) aimbotSheriffEnabled = s end)
 aimbotGroup:CreateToggle("Aimbot Innocent", false, function(s) aimbotInnocentEnabled = s end)
@@ -2235,13 +2064,11 @@ aimbotGroup:CreateToggle("Enable Aimbot", false, function(s)
         end
     end
 end)
-
 trollGroup:CreateButton("Execute Touch Fling", function()
     if flingExecuted then return end
     flingExecuted = true
     loadstring(game:HttpGet("https://raw.githubusercontent.com/SCRIPTHUB-dev-god/exploit/refs/heads/main/fling/the-touch-fling.luau",true))()
 end)
-
 trollGroup:CreateDivider("")
 trollGroup:CreateToggle("Fling Murder", false, function(s)
     trollMurderEnabled = s
@@ -2255,7 +2082,6 @@ trollGroup:CreateToggle("Fling Murder", false, function(s)
         stopTrollMurderLoop()
     end
 end)
-
 trollGroup:CreateToggle("Fling Sheriff", false, function(s)
     trollSheriffEnabled = s
     if s then
@@ -2268,7 +2094,6 @@ trollGroup:CreateToggle("Fling Sheriff", false, function(s)
         stopTrollSheriffLoop()
     end
 end)
-
 uiGroup:CreateButton("Reload UI", function()
     pcall(function() stopTP() end)
     pcall(function() stopFarm() end)
