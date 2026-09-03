@@ -17,7 +17,7 @@ local window = library:CreateWindow({
 pcall(function()
     window:AddTag({title = "keyless", canclicked = false, callback = function() end})
     window:AddTag({title = "made in indonesia", canclicked = false, callback = function() end})
-    window:SetMovingText("script version 1.3")
+    window:SetMovingText("script version 1.4")
 end)
 local InfoTab = library:CreateTab("Information")
 local Tab = library:CreateTab("Main")
