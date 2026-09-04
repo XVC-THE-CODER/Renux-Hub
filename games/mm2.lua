@@ -6,7 +6,7 @@ local UserInputService = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
 local LocalPlayer = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera
-local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/SCRIPTHUB-dev-god/User-Interface/main/library/wave-ui.lua", true))()
+local library = loadstring(game:HttpGet("https://github.com/SCRIPTHUB-dev-god/User-Interface/releases/latest/download/wave-ui.lua", true))()
 local window = library:CreateWindow({
     title = "Renux hub",
     desc = "Murder Mystery 2",
@@ -1793,11 +1793,11 @@ avoidGroup:CreateInput("Avoid Distance", "25", function(text)
         checkOffsetVsAvoid()
     end
 end)
-votePadGroup:CreateSlider("select detector", 1, 3, 1, function(v)
+votePadGroup:CreateSlider("select votes", 1, 3, 1, function(v)
     votePadIndex = math.clamp(math.floor(v + 0.5), 1, 3)
     if votePadEnabled and not isAnyOtherPlayerHasWeapon() then tpToDetector(votePadIndex) end
 end)
-votePadGroup:CreateToggle("Auto vote Detector", false, function(state)
+votePadGroup:CreateToggle("Auto vote map", false, function(state)
     votePadEnabled = state
     if state then startVotePad() else stopVotePad() end
 end)
