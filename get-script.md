@@ -1,6 +1,6 @@
 # Renux hub
 ```luau
-loadstring(game:HttpGet("https://github.com/XVC-THE-CODER/Renux-Hub/releases/latest/download/loader.lua",true))()
+loadstring(game:HttpGet("https://github.com/XVC-THE-CODER/Renux-Hub/releases/latest/download/loaders.lua",true))()
 ```
 ---
 **game support**
@@ -9,7 +9,7 @@ loadstring(game:HttpGet("https://github.com/XVC-THE-CODER/Renux-Hub/releases/lat
 - gun ground ffa (v1.0)
 - one tap (v1.0)
 - hide and seek extreme (v1.2)
-- murder mystery 2 (v1.3)
+- murder mystery 2 (v1.4)
 ---
 [need update]
 - nothing 
@@ -17,5 +17,6 @@ loadstring(game:HttpGet("https://github.com/XVC-THE-CODER/Renux-Hub/releases/lat
 [next game]
 - survive the killer
 - jjs
+- tower of hell
 ---
 **[change logs](https://discord.com/channels/1527224286006214656/1527237630633447515)**
