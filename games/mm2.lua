@@ -6,7 +6,8 @@ local UserInputService = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
 local LocalPlayer = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera
-local library = loadstring(game:HttpGet("https://github.com/SCRIPTHUB-dev-god/User-Interface/releases/latest/download/wave-ui.lua", true))()
+loadstring(game:HttpGet("https://github.com/SCRIPTHUB-dev-god/User-Interface/releases/download/loader/wave-ui.lua"))()
+local library = GetLibrary("latest")
 local window = library:CreateWindow({
     title = "Renux hub",
     desc = "Murder Mystery 2",
