@@ -37,10 +37,12 @@ window:AddTag({
     getclick = false,
 })
 
-window:SetToggleUi({ title = "Renux Hub", icon = "moon" })
+window:SetToggleUi({
+    title = "Renux Hub",
+    icon = "moon"
+})
 
 local suptab = window:AddTab("support", "info")
-
 suptab:Addbutton({
     title = "copy discord",
     callback = function()
@@ -84,7 +86,6 @@ getgenv().RebirthAtCheckpoint = 61
 getgenv().FarmSpeed = 40
 getgenv().CurrentPing = 0
 getgenv().CurrentFPS = 60
-
 getgenv().InfiniteJumpEnabled = false
 getgenv().InfiniteJumpConn = nil
 getgenv().FullbrightEnabled = false
@@ -94,6 +95,27 @@ getgenv().SpeedEnabled = false
 getgenv().SpeedValue = 16
 getgenv().JumpEnabled = false
 getgenv().JumpValue = 50
+
+local function GetExecutorName()
+    local ok, res = pcall(function()
+        if identifyexecutor then return identifyexecutor() end
+        if getexecutorname then return getexecutorname() end
+        if get_executor_name then return get_executor_name() end
+    end)
+    if ok and res and res ~= "" then
+        if type(res) == "table" then
+            return tostring(res[1] or res.Name or "Unknown")
+        end
+        return tostring(res)
+    end
+    if KRNL_LOADED then return "KRNL"
+    elseif syn and syn.protect_gui then return "Synapse"
+    elseif Fluxus or isfluxusclosure then return "Fluxus"
+    elseif gethui then return "Delta/Codex"
+    else return "Unknown" end
+end
+
+local ExecutorName = GetExecutorName()
 
 pcall(function()
     if isfile and isfile("RENUX-HUB_save.txt") then
@@ -108,7 +130,9 @@ end)
 local function SaveCheckpoint(i)
     getgenv().CurrentCheckpoint = i
     pcall(function()
-        if writefile then writefile("RENUX-HUB_save.txt", tostring(i)) end
+        if writefile then
+            writefile("RENUX-HUB_save.txt", tostring(i))
+        end
     end)
 end
 
@@ -116,7 +140,9 @@ local function GetFolder()
     local f = workspace:FindFirstChild("Checkpoints")
     if f then return f end
     for _, v in ipairs(workspace:GetDescendants()) do
-        if v.Name:lower() == "checkpoints" then return v end
+        if v.Name:lower() == "checkpoints" then
+            return v
+        end
     end
     return nil
 end
@@ -126,24 +152,27 @@ local function GetSortedList(folder)
     local list = {}
     for _, v in ipairs(folder:GetDescendants()) do
         if v:IsA("BasePart") and tonumber(v.Name) then
-            table.insert(list, { part = v, num = tonumber(v.Name) })
+            table.insert(list, {
+                part = v,
+                num = tonumber(v.Name)
+            })
         end
     end
-    table.sort(list, function(a,b) return a.num < b.num end)
+    table.sort(list, function(a, b) return a.num < b.num end)
     return list
 end
 
 local function GetCheckpointValuesFixed()
     local folder = GetFolder()
     local sorted = GetSortedList(folder)
-    local values = {}
+    local maxNum = 241
     if #sorted > 0 then
-        local maxNum = sorted[#sorted].num
-        for i = 0, maxNum do
-            table.insert(values, tostring(i))
-        end
-    else
-        for i = 0, 100 do table.insert(values, tostring(i)) end
+        local found = sorted[#sorted].num
+        if found > maxNum then maxNum = found end
+    end
+    local values = {}
+    for i = 0, maxNum do
+        table.insert(values, tostring(i))
     end
     return values
 end
@@ -151,15 +180,14 @@ end
 local function GetRebirthValues()
     local folder = GetFolder()
     local sorted = GetSortedList(folder)
-    local values = {}
+    local maxNum = 241
     if #sorted > 0 then
-        local maxNum = sorted[#sorted].num
-        if maxNum < 61 then maxNum = 100 end
-        for i = 61, maxNum do
-            table.insert(values, tostring(i))
-        end
-    else
-        for i = 61, 100 do table.insert(values, tostring(i)) end
+        local found = sorted[#sorted].num
+        if found > maxNum then maxNum = found end
+    end
+    local values = {}
+    for i = 61, maxNum do
+        table.insert(values, tostring(i))
     end
     return values
 end
@@ -194,17 +222,23 @@ local function GetCurrentStageUI()
         local lbl = curObj:FindFirstChildOfClass("TextLabel")
         if lbl then txt = lbl.Text end
     end
-    if txt then return tonumber(txt:match("%d+")) or tonumber(txt) end
+    if txt then
+        return tonumber(txt:match("%d+")) or tonumber(txt)
+    end
     return nil
 end
 
 local function FindIndexByNum(sorted, num)
-    for i, d in ipairs(sorted) do if d.num == num then return i end end
+    for i, d in ipairs(sorted) do
+        if d.num == num then return i end
+    end
     return nil
 end
 
 local function FindNextPart(sorted, cur)
-    for _, d in ipairs(sorted) do if d.num > cur then return d end end
+    for _, d in ipairs(sorted) do
+        if d.num > cur then return d end
+    end
     return nil
 end
 
@@ -217,7 +251,9 @@ local function SafeTP(hrp, targetCF)
         end)
         hrp.CFrame = targetCF
         task.wait(0.01)
-        pcall(function() hrp.AssemblyLinearVelocity = Vector3.zero end)
+        pcall(function()
+            hrp.AssemblyLinearVelocity = Vector3.zero
+        end)
     else
         hrp.CFrame = targetCF
     end
@@ -262,7 +298,9 @@ local function HandleErrorUI()
     for _, v in ipairs(frame:GetDescendants()) do
         if v:IsA("TextButton") or v:IsA("ImageButton") then btn = v break end
     end
-    if not btn then btn = frame:FindFirstChildOfClass("TextButton") or frame:FindFirstChildOfClass("ImageButton") end
+    if not btn then
+        btn = frame:FindFirstChildOfClass("TextButton") or frame:FindFirstChildOfClass("ImageButton")
+    end
     if btn then
         task.wait(0.25)
         ClickButton(btn)
@@ -277,7 +315,6 @@ local function DoAutoRebirthSequence()
     if not curStage or curStage < need then return false end
     local pg = game.Players.LocalPlayer:FindFirstChild("PlayerGui")
     if not pg then return false end
-
     local sideMenu = pg:FindFirstChild("SideMenu")
     if not sideMenu then
         for _, v in ipairs(pg:GetDescendants()) do
@@ -292,9 +329,12 @@ local function DoAutoRebirthSequence()
                 if v.Name == "0_Rebirth" and v:IsA("ImageButton") then rebirthBtn = v break end
             end
         end
-        if rebirthBtn then task.wait(0.25) ClickButton(rebirthBtn) task.wait(0.25) end
+        if rebirthBtn then
+            task.wait(0.25)
+            ClickButton(rebirthBtn)
+            task.wait(0.25)
+        end
     end
-
     local rebirthUI = pg:FindFirstChild("Rebirth")
     if not rebirthUI then
         for _, v in ipairs(pg:GetDescendants()) do
@@ -306,11 +346,16 @@ local function DoAutoRebirthSequence()
         local f2 = f1:FindFirstChild("Frame") or f1
         local nowBtn = nil
         for _, v in ipairs(f2:GetDescendants()) do
-            if v:IsA("TextButton") and v.Text:lower():find("rebirth now") then nowBtn = v break end
+            if v:IsA("TextButton") and v.Text:lower():find("rebirth now") then
+                nowBtn = v break
+            end
         end
-        if nowBtn then task.wait(0.25) ClickButton(nowBtn) task.wait(0.25) end
+        if nowBtn then
+            task.wait(0.25)
+            ClickButton(nowBtn)
+            task.wait(0.25)
+        end
     end
-
     local conf = pg:FindFirstChild("Confirmation")
     if not conf then
         for _, v in ipairs(pg:GetDescendants()) do
@@ -326,7 +371,11 @@ local function DoAutoRebirthSequence()
                 if v.Name == "Yes" and v:IsA("TextButton") then yesBtn = v break end
             end
         end
-        if yesBtn then task.wait(0.25) ClickButton(yesBtn) return true end
+        if yesBtn then
+            task.wait(0.25)
+            ClickButton(yesBtn)
+            return true
+        end
     end
     return false
 end
@@ -350,43 +399,40 @@ task.spawn(function()
             local item = stats.Network.ServerStatsItem["Data Ping"]
             local ping = 0
             if item then ping = math.floor(item:GetValue()) end
-            if ping == 0 then ping = math.floor(game.Players.LocalPlayer:GetNetworkPing()*1000) end
+            if ping == 0 then
+                ping = math.floor(game.Players.LocalPlayer:GetNetworkPing() * 1000)
+            end
             getgenv().CurrentPing = ping
         end)
     end
 end)
 
 local statusPrgf = nil
+
 local function StartFarmLoop()
     local TweenService = game:GetService("TweenService")
     local player = game.Players.LocalPlayer
-
     task.spawn(function()
         local folder = GetFolder()
         if not folder then getgenv().FarmEnabled = false return end
         local sorted = GetSortedList(folder)
         if #sorted == 0 then getgenv().FarmEnabled = false return end
-
         if getgenv().TPMode == "Fast" then
             while getgenv().FarmEnabled do
                 local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
                 local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
                 if not hrp or not hum then task.wait(0.1) continue end
-
                 local curStage = GetCurrentStageUI() or getgenv().CurrentCheckpoint or 0
                 local nextData = FindNextPart(sorted, curStage)
                 if not nextData then getgenv().FarmEnabled = false break end
-
                 SafeTP(hrp, CFrame.new(nextData.part.Position.X, nextData.part.Position.Y + 3.5, nextData.part.Position.Z))
                 task.wait(0.25)
-
                 local t0 = tick()
                 local newStage = curStage
                 repeat
                     task.wait(0.03)
                     newStage = GetCurrentStageUI() or curStage
                 until (newStage >= nextData.num) or (tick() - t0 > 0.5) or not getgenv().FarmEnabled
-
                 if newStage >= nextData.num then
                     SaveCheckpoint(newStage)
                     local nextNext = FindNextPart(sorted, newStage)
@@ -425,7 +471,6 @@ local function StartFarmLoop()
             while idx <= #sorted and getgenv().FarmEnabled do
                 local data = sorted[idx]
                 if not data.part or not data.part.Parent then idx += 1 continue end
-
                 local curUI = GetCurrentStageUI()
                 if curUI and (data.num - curUI) > 2 then
                     local curIdx = FindIndexByNum(sorted, curUI)
@@ -433,7 +478,9 @@ local function StartFarmLoop()
                         local curPart = sorted[curIdx].part
                         if curPart then
                             local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-                            if hrp then SafeTP(hrp, CFrame.new(curPart.Position.X, curPart.Position.Y + 3, curPart.Position.Z)) end
+                            if hrp then
+                                SafeTP(hrp, CFrame.new(curPart.Position.X, curPart.Position.Y + 3, curPart.Position.Z))
+                            end
                             task.wait(0.3)
                             idx = curIdx + 1
                             SaveCheckpoint(curUI)
@@ -441,7 +488,6 @@ local function StartFarmLoop()
                         end
                     end
                 end
-
                 local function TweenTo(targetCF, speedOverride)
                     local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
                     if not hrp then return false end
@@ -455,19 +501,19 @@ local function StartFarmLoop()
                     tween:Play()
                     local done = false
                     local conn = tween.Completed:Connect(function() done = true end)
-                    while not done and getgenv().FarmEnabled and player.Character and player.Character:FindFirstChild("HumanoidRootPart") do task.wait(0.05) end
+                    while not done and getgenv().FarmEnabled and player.Character and player.Character:FindFirstChild("HumanoidRootPart") do
+                        task.wait(0.05)
+                    end
                     if conn then conn:Disconnect() end
                     pcall(function() tween:Cancel() end)
                     getgenv().CurrentTween = nil
                     return done
                 end
-
                 local targetCF = CFrame.new(data.part.Position.X, data.part.Position.Y + 3, data.part.Position.Z)
                 if not TweenTo(targetCF) then break end
                 if not getgenv().FarmEnabled then break end
                 task.wait(1.2)
                 if not getgenv().FarmEnabled then break end
-
                 local curUI2 = GetCurrentStageUI()
                 if curUI2 then
                     if curUI2 < data.num then
@@ -476,7 +522,9 @@ local function StartFarmLoop()
                             local curPart = sorted[curIdx].part
                             if curPart then
                                 local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-                                if hrp then SafeTP(hrp, CFrame.new(curPart.Position.X, curPart.Position.Y + 3, curPart.Position.Z)) end
+                                if hrp then
+                                    SafeTP(hrp, CFrame.new(curPart.Position.X, curPart.Position.Y + 3, curPart.Position.Z))
+                                end
                                 task.wait(0.3)
                                 idx = curIdx + 1
                                 SaveCheckpoint(curUI2)
@@ -489,7 +537,6 @@ local function StartFarmLoop()
                 else
                     SaveCheckpoint(data.num)
                 end
-
                 local nextData = sorted[idx + 1]
                 if not nextData then getgenv().FarmEnabled = false break end
                 local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
@@ -519,12 +566,16 @@ farmBox:Addtoggle({
     value = false,
     callback = function(state)
         getgenv().FarmEnabled = state
-        local player = game.Players.LocalPlayer
         if not state then
-            if getgenv().CurrentTween then pcall(function() getgenv().CurrentTween:Cancel() end) getgenv().CurrentTween = nil end
+            if getgenv().CurrentTween then
+                pcall(function() getgenv().CurrentTween:Cancel() end)
+                getgenv().CurrentTween = nil
+            end
             pcall(function()
-                local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-                if hrp then SafeTP(hrp, CFrame.new(hrp.Position.X, hrp.Position.Y + 5, hrp.Position.Z)) end
+                local hrp = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    SafeTP(hrp, CFrame.new(hrp.Position.X, hrp.Position.Y + 5, hrp.Position.Z))
+                end
             end)
             return
         end
@@ -588,7 +639,10 @@ settingBox:AddDropdown({
     Callback = function(selected)
         local val = type(selected) == "table" and selected[1] or selected
         local num = tonumber(val)
-        if num then getgenv().SelectedCheckpoint = num SaveCheckpoint(num) end
+        if num then
+            getgenv().SelectedCheckpoint = num
+            SaveCheckpoint(num)
+        end
     end
 })
 
@@ -633,18 +687,24 @@ manualBox:Addbutton({
             local curStage = GetCurrentStageUI() or getgenv().CurrentCheckpoint or 0
             local startIdx = FindIndexByNum(sorted, curStage)
             if not startIdx then
-                for i, d in ipairs(sorted) do if d.num >= curStage then startIdx = i break end end
+                for i, d in ipairs(sorted) do
+                    if d.num >= curStage then startIdx = i break end
+                end
                 if not startIdx then startIdx = 1 end
             end
             local endIdx = FindIndexByNum(sorted, targetNum)
             if not endIdx then
-                for i = #sorted, 1, -1 do if sorted[i].num <= targetNum then endIdx = i break end end
+                for i = #sorted, 1, -1 do
+                    if sorted[i].num <= targetNum then endIdx = i break end
+                end
                 if not endIdx then endIdx = #sorted end
             end
             if startIdx > endIdx then
                 local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
                 local tp = sorted[endIdx] and sorted[endIdx].part
-                if hrp and tp then SafeTP(hrp, CFrame.new(tp.Position.X, tp.Position.Y + 3, tp.Position.Z)) end
+                if hrp and tp then
+                    SafeTP(hrp, CFrame.new(tp.Position.X, tp.Position.Y + 3, tp.Position.Z))
+                end
                 return
             end
             local function TweenTo(targetCF, speedOverride)
@@ -656,13 +716,17 @@ manualBox:Addbutton({
                 if dist < 3 then return true end
                 local duration = dist / math.max(getgenv().FarmSpeed, 1)
                 local tween = TweenService:Create(hrp, TweenInfo.new(duration, Enum.EasingStyle.Linear), { CFrame = targetCF })
-                getgenv().CurrentTween = tween tween:Play()
+                getgenv().CurrentTween = tween
+                tween:Play()
                 local done = false
                 local conn = tween.Completed:Connect(function() done = true end)
                 local t = 0
-                while not done and t < 10 and player.Character and player.Character:FindFirstChild("HumanoidRootPart") do task.wait(0.05) t += 0.05 end
+                while not done and t < 10 and player.Character and player.Character:FindFirstChild("HumanoidRootPart") do
+                    task.wait(0.05) t += 0.05
+                end
                 if conn then conn:Disconnect() end
-                pcall(function() tween:Cancel() end) getgenv().CurrentTween = nil
+                pcall(function() tween:Cancel() end)
+                getgenv().CurrentTween = nil
                 return done
             end
             local idx = startIdx
@@ -675,11 +739,17 @@ manualBox:Addbutton({
                     if curIdx then
                         local curPart = sorted[curIdx].part
                         local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-                        if hrp and curPart then SafeTP(hrp, CFrame.new(curPart.Position.X, curPart.Position.Y + 3, curPart.Position.Z)) task.wait(0.4) idx = curIdx + 1 continue end
+                        if hrp and curPart then
+                            SafeTP(hrp, CFrame.new(curPart.Position.X, curPart.Position.Y + 3, curPart.Position.Z))
+                            task.wait(0.4)
+                            idx = curIdx + 1
+                            continue
+                        end
                     end
                 end
                 local targetCF = CFrame.new(data.part.Position.X, data.part.Position.Y + 3, data.part.Position.Z)
-                TweenTo(targetCF) task.wait(1.2)
+                TweenTo(targetCF)
+                task.wait(1.2)
                 local newStage = GetCurrentStageUI()
                 if newStage then SaveCheckpoint(newStage) else SaveCheckpoint(data.num) end
                 if idx >= endIdx then break end
@@ -697,7 +767,8 @@ manualBox:Addbutton({
                 newChar:WaitForChild("HumanoidRootPart", 5)
                 task.wait(0.3)
                 local nextCF = CFrame.new(nextData.part.Position.X, nextData.part.Position.Y + 3, nextData.part.Position.Z)
-                TweenTo(nextCF, 0) task.wait(0.3)
+                TweenTo(nextCF, 0)
+                task.wait(0.3)
                 idx += 1
             end
         end)
@@ -707,18 +778,27 @@ manualBox:Addbutton({
 manualBox:Addbutton({
     title = "TP to Checkpoint selected",
     callback = function()
-        if getgenv().CurrentTween then pcall(function() getgenv().CurrentTween:Cancel() end) getgenv().CurrentTween = nil end
+        if getgenv().CurrentTween then
+            pcall(function() getgenv().CurrentTween:Cancel() end)
+            getgenv().CurrentTween = nil
+        end
         local targetNum = getgenv().SelectedCheckpoint or 0
         local folder = GetFolder()
         if not folder then return end
         local sorted = GetSortedList(folder)
         local targetPart = nil
-        for _, d in ipairs(sorted) do if d.num == targetNum then targetPart = d.part break end end
-        if not targetPart then targetPart = folder:FindFirstChild(tostring(targetNum)) end
+        for _, d in ipairs(sorted) do
+            if d.num == targetNum then targetPart = d.part break end
+        end
+        if not targetPart then
+            targetPart = folder:FindFirstChild(tostring(targetNum))
+        end
         if targetPart and targetPart:IsA("BasePart") then
             SaveCheckpoint(targetNum)
             local hrp = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-            if hrp then SafeTP(hrp, CFrame.new(targetPart.Position.X, targetPart.Position.Y, targetPart.Position.Z)) end
+            if hrp then
+                SafeTP(hrp, CFrame.new(targetPart.Position.X, targetPart.Position.Y, targetPart.Position.Z))
+            end
         end
     end
 })
@@ -726,13 +806,19 @@ manualBox:Addbutton({
 manualBox:Addbutton({
     title = "Reset Save",
     callback = function()
-        if getgenv().CurrentTween then pcall(function() getgenv().CurrentTween:Cancel() end) getgenv().CurrentTween = nil end
+        if getgenv().CurrentTween then
+            pcall(function() getgenv().CurrentTween:Cancel() end)
+            getgenv().CurrentTween = nil
+        end
         getgenv().CurrentCheckpoint = 0
         getgenv().SelectedCheckpoint = 0
         getgenv().ManualTargetCheckpoint = 0
         pcall(function()
-            if delfile and isfile and isfile("RENUX-HUB_save.txt") then delfile("RENUX-HUB_save.txt")
-            elseif writefile then writefile("RENUX-HUB_save.txt", "0") end
+            if delfile and isfile and isfile("RENUX-HUB_save.txt") then
+                delfile("RENUX-HUB_save.txt")
+            elseif writefile then
+                writefile("RENUX-HUB_save.txt", "0")
+            end
         end)
     end
 })
@@ -742,7 +828,9 @@ serverSection:Addtoggle({
     value = false,
     callback = function(state)
         for _, v in ipairs(workspace:GetDescendants()) do
-            if v.Name == "KillBrick" and v:IsA("BasePart") then v.CanTouch = not state end
+            if v.Name == "KillBrick" and v:IsA("BasePart") then
+                v.CanTouch = not state
+            end
         end
     end
 })
@@ -750,7 +838,9 @@ serverSection:Addtoggle({
 serverSection:Addtoggle({
     title = "Bypass TP",
     value = false,
-    callback = function(state) getgenv().BypassTP = state end
+    callback = function(state)
+        getgenv().BypassTP = state
+    end
 })
 
 localPlayerSection:Addtoggle({
@@ -758,7 +848,10 @@ localPlayerSection:Addtoggle({
     value = false,
     callback = function(state)
         getgenv().InfiniteJumpEnabled = state
-        if getgenv().InfiniteJumpConn then pcall(function() getgenv().InfiniteJumpConn:Disconnect() end) getgenv().InfiniteJumpConn = nil end
+        if getgenv().InfiniteJumpConn then
+            pcall(function() getgenv().InfiniteJumpConn:Disconnect() end)
+            getgenv().InfiniteJumpConn = nil
+        end
         if state then
             getgenv().InfiniteJumpConn = game:GetService("UserInputService").JumpRequest:Connect(function()
                 if getgenv().InfiniteJumpEnabled then
@@ -781,7 +874,7 @@ localPlayerSection:Addtoggle({
             Lighting.ClockTime = 14
             Lighting.FogEnd = 100000
             Lighting.GlobalShadows = false
-            Lighting.OutdoorAmbient = Color3.fromRGB(255,255,255)
+            Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
         else
             Lighting.Brightness = 1
             Lighting.FogEnd = 100000
@@ -795,12 +888,17 @@ localPlayerSection:Addtoggle({
     value = false,
     callback = function(state)
         getgenv().NoclipEnabled = state
-        if getgenv().NoclipConn then pcall(function() getgenv().NoclipConn:Disconnect() end) getgenv().NoclipConn = nil end
+        if getgenv().NoclipConn then
+            pcall(function() getgenv().NoclipConn:Disconnect() end)
+            getgenv().NoclipConn = nil
+        end
         if state then
             getgenv().NoclipConn = game:GetService("RunService").Stepped:Connect(function()
                 if getgenv().NoclipEnabled and game.Players.LocalPlayer.Character then
                     for _, v in ipairs(game.Players.LocalPlayer.Character:GetDescendants()) do
-                        if v:IsA("BasePart") and v.CanCollide then v.CanCollide = false end
+                        if v:IsA("BasePart") and v.CanCollide then
+                            v.CanCollide = false
+                        end
                     end
                 end
             end)
@@ -870,7 +968,9 @@ localPlayerSection:AddSlider({
 local function GetPlayerNames()
     local list = {}
     for _, p in ipairs(game.Players:GetPlayers()) do
-        if p.Name ~= game.Players.LocalPlayer.Name then table.insert(list, p.Name) end
+        if p.Name ~= game.Players.LocalPlayer.Name then
+            table.insert(list, p.Name)
+        end
     end
     table.sort(list)
     if #list == 0 then return { "No Players" } end
@@ -896,11 +996,19 @@ local spyDropdown = playerSection:AddDropdown({
 })
 
 playerSection:Addtoggle({
-    title = "Spectator",
+    title = "Spectator (Fixed)",
     value = false,
     callback = function(state)
         getgenv().SpectatorEnabled = state
-        if getgenv().SpectatorConn then pcall(function() getgenv().SpectatorConn:Disconnect() end) getgenv().SpectatorConn = nil end
+        if getgenv().SpectatorConn then
+            pcall(function() getgenv().SpectatorConn:Disconnect() end)
+            getgenv().SpectatorConn = nil
+        end
+        local function ResetToSelf()
+            local myChar = game.Players.LocalPlayer.Character
+            local myHum = myChar and myChar:FindFirstChildOfClass("Humanoid")
+            if myHum then workspace.CurrentCamera.CameraSubject = myHum end
+        end
         if state then
             local targetName = getgenv().SelectedSpyPlayer
             if targetName and targetName ~= "No Players" then
@@ -916,20 +1024,23 @@ playerSection:Addtoggle({
                 local tPlayer = game.Players:FindFirstChild(tName)
                 if tPlayer and tPlayer.Character then
                     local hum = tPlayer.Character:FindFirstChildOfClass("Humanoid")
-                    if hum and workspace.CurrentCamera.CameraSubject ~= hum then
-                        workspace.CurrentCamera.CameraSubject = hum
+                    if hum and hum.Health > 0 then
+                        if workspace.CurrentCamera.CameraSubject ~= hum then
+                            workspace.CurrentCamera.CameraSubject = hum
+                        end
+                    else
+                        ResetToSelf()
                     end
                 end
             end)
         else
-            local myHum = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-            if myHum then workspace.CurrentCamera.CameraSubject = myHum end
+            ResetToSelf()
         end
     end
 })
 
 playerSection:Addbutton({
-    title = "TP to player",
+    title = "TP to player (Fixed)",
     callback = function()
         local targetName = getgenv().SelectedSpyPlayer
         if not targetName or targetName == "No Players" then return end
@@ -951,7 +1062,9 @@ task.spawn(function()
             local newStr = table.concat(newList, ",")
             if newStr ~= lastList then
                 lastList = newStr
-                if spyDropdown and spyDropdown.SetValues then spyDropdown:SetValues(newList) end
+                if spyDropdown and spyDropdown.SetValues then
+                    spyDropdown:SetValues(newList)
+                end
             end
         end)
     end
@@ -974,7 +1087,7 @@ game.Players.PlayerRemoving:Connect(function()
 end)
 
 settingUISection:Addbutton({
-    title = "Reload UI",
+    title = "reload script",
     callback = function()
         getgenv().FarmEnabled = false
         getgenv().AutoRebirth = false
@@ -984,24 +1097,46 @@ settingUISection:Addbutton({
         getgenv().NoclipEnabled = false
         getgenv().SpeedEnabled = false
         getgenv().JumpEnabled = false
+        getgenv().BypassTP = false
 
-        if getgenv().CurrentTween then pcall(function() getgenv().CurrentTween:Cancel() end) end
-        if getgenv().SpectatorConn then pcall(function() getgenv().SpectatorConn:Disconnect() end) end
-        if getgenv().InfiniteJumpConn then pcall(function() getgenv().InfiniteJumpConn:Disconnect() end) end
-        if getgenv().NoclipConn then pcall(function() getgenv().NoclipConn:Disconnect() end) end
+        if getgenv().CurrentTween then
+            pcall(function() getgenv().CurrentTween:Cancel() end)
+            getgenv().CurrentTween = nil
+        end
+        if getgenv().SpectatorConn then
+            pcall(function() getgenv().SpectatorConn:Disconnect() end)
+            getgenv().SpectatorConn = nil
+        end
+        if getgenv().InfiniteJumpConn then
+            pcall(function() getgenv().InfiniteJumpConn:Disconnect() end)
+            getgenv().InfiniteJumpConn = nil
+        end
+        if getgenv().NoclipConn then
+            pcall(function() getgenv().NoclipConn:Disconnect() end)
+            getgenv().NoclipConn = nil
+        end
 
         pcall(function()
+            for _, v in ipairs(workspace:GetDescendants()) do
+                if v.Name == "KillBrick" and v:IsA("BasePart") then
+                    v.CanTouch = true
+                end
+            end
             local char = game.Players.LocalPlayer.Character
             if char then
                 local hum = char:FindFirstChildOfClass("Humanoid")
-                if hum then hum.WalkSpeed = 16 hum.JumpPower = 50 end
-                for _, v in ipairs(char:GetDescendants()) do if v:IsA("BasePart") then v.CanCollide = true end end
+                if hum then
+                    hum.WalkSpeed = 16
+                    hum.JumpPower = 50
+                    hum.UseJumpPower = true
+                    workspace.CurrentCamera.CameraSubject = hum
+                end
+                for _, v in ipairs(char:GetDescendants()) do
+                    if v:IsA("BasePart") then
+                        v.CanCollide = true
+                    end
+                end
             end
-            local Lighting = game:GetService("Lighting")
-            Lighting.Brightness = 1
-            Lighting.GlobalShadows = true
-            local myHum = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-            if myHum then workspace.CurrentCamera.CameraSubject = myHum end
         end)
 
         task.wait(0.3)
@@ -1011,15 +1146,16 @@ settingUISection:Addbutton({
 
 statusPrgf = statusBox:AddParagraph({
     Title = "Status",
-    Desc = "• stage : ".. tostring(GetCurrentStageUI() or getgenv().CurrentCheckpoint).. "\n• mode : ".. string.lower(getgenv().TPMode).. "\n• ping : 0 ms\n• fps : 60",
+    Desc = "• stage : ".. tostring(GetCurrentStageUI() or getgenv().CurrentCheckpoint).. "\n• mode : ".. string.lower(getgenv().TPMode).. "\n• ping : 0 ms\n• fps : 60\n• executor : ".. ExecutorName.. "\n• player in server : ".. #game.Players:GetPlayers().. "/".. game.Players.MaxPlayers,
     Color = "Blue",
     Button = {
         Title = "Refresh",
         Callback = function()
             checkpointValuesCache = GetCheckpointValuesFixed()
             rebirthValuesCache = GetRebirthValues()
+            ExecutorName = GetExecutorName()
             if statusPrgf then
-                statusPrgf:SetDesc("• stage : ".. tostring(GetCurrentStageUI() or getgenv().CurrentCheckpoint).. "\n• mode : ".. string.lower(getgenv().TPMode).. "\n• ping : ".. getgenv().CurrentPing.. " ms\n• fps : ".. getgenv().CurrentFPS)
+                statusPrgf:SetDesc("• stage : ".. tostring(GetCurrentStageUI() or getgenv().CurrentCheckpoint).. "\n• mode : ".. string.lower(getgenv().TPMode).. "\n• ping : ".. getgenv().CurrentPing.. " ms\n• fps : ".. getgenv().CurrentFPS.. "\n• executor : ".. ExecutorName.. "\n• player in server : ".. #game.Players:GetPlayers().. "/".. game.Players.MaxPlayers)
             end
         end
     }
@@ -1033,7 +1169,9 @@ task.spawn(function()
                     "• stage : ".. tostring(GetCurrentStageUI() or getgenv().CurrentCheckpoint).. "\n"..
                     "• mode : ".. string.lower(getgenv().TPMode).. (getgenv().BypassTP and " + bypass" or "").. "\n"..
                     "• ping : ".. getgenv().CurrentPing.. " ms\n"..
-                    "• fps : ".. getgenv().CurrentFPS
+                    "• fps : ".. getgenv().CurrentFPS.. "\n"..
+                    "• executor : ".. ExecutorName.. "\n"..
+                    "• player in server : ".. #game.Players:GetPlayers().. "/".. game.Players.MaxPlayers
                 )
             end)
         end
