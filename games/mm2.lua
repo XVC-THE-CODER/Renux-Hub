@@ -6,8 +6,252 @@ local UserInputService = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
 local LocalPlayer = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera
-loadstring(game:HttpGet("https://github.com/SCRIPTHUB-dev-god/User-Interface/releases/download/loader/wave-ui.lua"))()
-local library = GetLibrary("latest")
+
+local R = {
+    murderEnabled = false,
+    sheriffEnabled = false,
+    innocentEnabled = false,
+    espGunEnabled = false,
+    espMaxDistance = 1000,
+    killAuraEnabled = false,
+    currentTarget = nil,
+    killAllThread = nil,
+    killAuraConn = nil,
+    TP_RADIUS = 450,
+    farmEnabled = false,
+    farmPart = nil,
+    platformPart = nil,
+    farmConn = nil,
+    farmSpeed = 3,
+    savedParts = {},
+    farmAddConn = nil,
+    farmPausedByMurder = false,
+    mapHREnabled = false,
+    autoGetGunEnabled = false,
+    autoGetGunThread = nil,
+    loopGunEnabled = false,
+    loopGunConn = nil,
+    loopGunOffset = 35,
+    loopGunPlatform = nil,
+    mapHRGui = nil,
+    mapHRAutoSaveConn = nil,
+    mapHRSavedCFrame = nil,
+    mapHRTPing = false,
+    autoGetGunDisabledByDeath = false,
+        mapHRList = {"Bank2","bank2","bank 2","bank_2","Bank 2","Bank_2","BioLab","biolab","bio lab","bio_lab","Bio Lab","Bio_Lab","Factory","factory","Hospital3","hospital3","hospital 3","hospital_3","Hospital 3","Hospital_3","Hotel2","hotel2","hotel 2","hotel_2","Hotel 2","Hotel_2","House2","house2","house 2","house_2","House 2","House_2","Mansion2","mansion2","mansion 2","mansion_2","Mansion 2","Mansion_2","MilBase","milbase","mil base","mil_base","Mil Base","Mil_Base","Office3","office3","office 3","office_3","Office 3","Office_3","PoliceStation","policestation","police station","police_station","Police Station","Police_Station","ResearchFacility","researchfacility","research facility","research_facility","Research Facility","Research_Facility","Workplace","workplace"},
+    mapHRSet = {},
+    avoidEnabled = false,
+    avoidDistance = 25,
+    avoidConn = nil,
+    antiVoidEnabled = false,
+    antiVoidConn = nil,
+    lastSafePos = nil,
+    lastSafePosString = nil,
+    antiVoidLoop = nil,
+    safePlatformPart = nil,
+    walkSpeedEnabled = false,
+    walkSpeedValue = 16,
+    jumpEnabled = false,
+    jumpValue = 50,
+    movementConn = nil,
+    noclipEnabled = false,
+    noclipConnection = nil,
+    infJumpEnabled = false,
+    infJumpConn = nil,
+    xrayEnabled = false,
+    xrayConn = nil,
+    xrayOriginal = {},
+    xrayLoop = nil,
+    fullbrightEnabled = false,
+    fullbrightConn = nil,
+    oldLighting = {},
+    espData = {},
+    espGunBox = nil,
+    espGunBillboard = nil,
+    espGunLoop = nil,
+    espGunWasFound = false,
+    espGunLastHrp = nil,
+    aimbotMurderEnabled = true,
+    aimbotSheriffEnabled = false,
+    aimbotInnocentEnabled = false,
+    aimbotEnabled = false,
+    aimbotConn = nil,
+    aimbotInfoGui = nil,
+    aimbotInfoName = nil,
+    aimbotInfoDist = nil,
+    aimbotInfoConn = nil,
+    aimbotCurrentTarget = nil,
+    flingExecuted = false,
+    trollMurderEnabled = false,
+    trollMurderConn = nil,
+    trollSheriffEnabled = false,
+    trollSheriffConn = nil,
+    votePadEnabled = false,
+    votePadIndex = 1,
+    votePadLoop = nil,
+    votePadCharConn = nil,
+    votePadTPed = false,
+    startTime = tick(),
+    fps = 0,
+    frameCount = 0,
+    lastFpsTick = tick(),
+    lastPredictions = {},
+    autoCoinWanted = false,
+    autoCoinRoleConn = nil,
+    autoCoinCheckLoop = nil,
+    killAllOPEnabled = false,
+    killAllOPConn = nil,
+    killAllOPBringConn = nil,
+    killAllOPFrozen = {},
+    autoGetGunRefreshConn = nil,
+    autoGetGunScanned = false,
+    autoGetGunPartFound = nil,
+    autoGetGunPartFound = nil,
+    autoGetGunBringConn = nil,
+    espGunDescConn = nil,
+    espGunTextLoop = nil,
+    espGunNotified = false,
+    loopGunAutoRefresh = nil,
+    loopGunToolCache = nil,
+    killAllOPMurderCheck = nil,
+    killAllOPAutoRefreshConn = nil,
+}
+
+R.toolCache = {hasGun = false, hasKnife = false, hasGunRead = false, hasKnifeRead = false}
+R.toolRefreshConn = nil
+R.toolRefreshActive = false
+local function updateToolCache()
+    local hasGun = hasTool(LocalPlayer, "gun")
+    local hasKnife = hasTool(LocalPlayer, "knife")
+    if hasGun then
+        R.toolCache.hasGun = true
+        R.toolCache.hasGunRead = true
+    end
+    if hasKnife then
+        R.toolCache.hasKnife = true
+        R.toolCache.hasKnifeRead = true
+    end
+    if not hasGun then
+        R.toolCache.hasGun = false
+    end
+    if not hasKnife then
+        R.toolCache.hasKnife = false
+    end
+end
+local function startToolAutoRefresh()
+    if R.toolRefreshActive then return end
+    R.toolRefreshActive = true
+    if R.toolRefreshConn then task.cancel(R.toolRefreshConn) end
+    R.toolRefreshConn = task.spawn(function()
+        while R.toolRefreshActive do
+            updateToolCache()
+            if R.toolCache.hasGun and R.toolCache.hasGunRead then
+                if not hasTool(LocalPlayer, "gun") then
+                else
+                    if R.toolCache.hasKnife or not R.aimbotSheriffEnabled and not R.aimbotInnocentEnabled then
+                    end
+                end
+            end
+            if (R.toolCache.hasGunRead and R.toolCache.hasGun) and (R.toolCache.hasKnifeRead and R.toolCache.hasKnife or (not R.aimbotSheriffEnabled and not R.aimbotInnocentEnabled)) then
+                if R.aimbotMurderEnabled and R.toolCache.hasGun then
+                    R.toolRefreshActive = false
+                    break
+                end
+                if (R.aimbotSheriffEnabled or R.aimbotInnocentEnabled) and R.toolCache.hasKnife then
+                    R.toolRefreshActive = false
+                    break
+                end
+            end
+            if R.aimbotMurderEnabled and not R.aimbotSheriffEnabled and not R.aimbotInnocentEnabled then
+                if R.toolCache.hasGunRead then
+                    R.toolRefreshActive = false
+                    break
+                end
+            end
+            if (R.aimbotSheriffEnabled or R.aimbotInnocentEnabled) and not R.aimbotMurderEnabled then
+                if R.toolCache.hasKnifeRead then
+                    R.toolRefreshActive = false
+                    break
+                end
+            end
+            task.wait(0.5)
+        end
+        R.toolRefreshConn = nil
+    end)
+end
+local function stopToolAutoRefresh()
+    R.toolRefreshActive = false
+    if R.toolRefreshConn then
+        task.cancel(R.toolRefreshConn)
+        R.toolRefreshConn = nil
+    end
+end
+
+R.aimbotMurderEnabled = true
+R.aimbotEnabled = false
+
+task.spawn(function()
+    while true do
+        task.wait(1)
+        if hasTool(LocalPlayer, "gun") then
+            if not R.aimbotMurderEnabled then
+                R.aimbotMurderEnabled = true
+            end
+            if not R.aimbotEnabled then
+            end
+        end
+    end
+end)
+
+function isLocalMurder()
+    local bp = LocalPlayer:FindFirstChild("Backpack")
+    local ch = LocalPlayer.Character
+    if bp then
+        for _, t in ipairs(bp:GetChildren()) do
+            if t:IsA("Tool") and string.find(string.lower(t.Name), "knife") then
+                return true
+            end
+        end
+    end
+    if ch then
+        for _, t in ipairs(ch:GetChildren()) do
+            if t:IsA("Tool") and string.find(string.lower(t.Name), "knife") then
+                return true
+            end
+        end
+    end
+    return false
+end
+function updateFarmByRole()
+    if not R.autoCoinWanted then return end
+    if isLocalMurder() then
+        if R.farmEnabled then
+            R.farmEnabled = false
+            stopFarm()
+        end
+    else
+        if not R.farmEnabled then
+            R.farmEnabled = true
+            R.farmPausedByMurder = false
+            startFarm()
+        end
+    end
+end
+
+local library = nil
+local attempts = 0
+repeat
+    pcall(function()
+        loadstring(game:HttpGet("https://github.com/SCRIPTHUB-dev-god/User-Interface/releases/download/loader/wave-ui.lua"))()
+        library = GetLibrary("latest")
+    end)
+    attempts = attempts + 1
+    if not library then task.wait(0.5) end
+until library or attempts > 20
+if not library then
+    warn("UI Library failed to load after 20 attempts")
+    return
+end
 local window = library:CreateWindow({
     title = "Renux hub",
     desc = "Murder Mystery 2",
@@ -18,20 +262,19 @@ local window = library:CreateWindow({
 pcall(function()
     window:AddTag({title = "keyless", canclicked = false, callback = function() end})
     window:AddTag({title = "made in indonesia", canclicked = false, callback = function() end})
-    window:SetMovingText("script version 1.4")
+    window:SetMovingText("script version 1.5")
 end)
 local InfoTab = library:CreateTab("Information")
 local Tab = library:CreateTab("Main")
 local MiscTab = library:CreateTab("Misc")
 local AimbotTab = library:CreateTab("Aimbot")
-local TrollTab = library:CreateTab("Troll")
 local SettingTab = library:CreateTab("Setting")
 local infoLeftGroup = InfoTab:CreateGroupBox("Invite", "left", "open")
 local infoRightGroup = InfoTab:CreateGroupBox("Information", "right", "open")
 local espGroup = Tab:CreateGroupBox("ESP", "left", "close")
-local killGroup = Tab:CreateGroupBox("Kill All", "right", "close")
+local killGroup = Tab:CreateGroupBox("Murder", "right", "close")
 local coinGroup = Tab:CreateGroupBox("Coin Farm", "left", "close")
-local sheriffCounterGroup = Tab:CreateGroupBox("get gun", "right", "close")
+local sheriffCounterGroup = Tab:CreateGroupBox("Sheriff", "right", "close")
 local avoidGroup = Tab:CreateGroupBox("Avoid", "left", "close")
 local votePadGroup = Tab:CreateGroupBox("auto Vote", "right", "close")
 local miscGroup = MiscTab:CreateGroupBox("Option", "left", "close")
@@ -39,65 +282,16 @@ local movementGroup = MiscTab:CreateGroupBox("Movement", "right", "close")
 local teleportGroup = MiscTab:CreateGroupBox("Teleport", "left", "close")
 local utilityGroup = MiscTab:CreateGroupBox("Utility", "right", "close")
 local aimbotGroup = AimbotTab:CreateGroupBox("Aimbot", "allside", "close")
-local trollGroup = TrollTab:CreateGroupBox("Fling Player", "allside", "close")
 local uiGroup = SettingTab:CreateGroupBox("UI", "allside", "open")
-local murderEnabled, sheriffEnabled, innocentEnabled = false, false, false
-local espGunEnabled = false
-local espMaxDistance = 1000
-local killAuraEnabled = false
-local currentTarget = nil
-local killAllThread = nil
-local killAuraConn = nil
-local TP_RADIUS = 250
-local farmEnabled = false
-local farmPart, platformPart, farmConn = nil, nil, nil
-local farmSpeed = 3
-local savedParts, farmAddConn = {}, nil
-local farmPausedByMurder = false
-local mapHREnabled = false
-local autoGetGunEnabled = false
-local autoGetGunThread = nil
-local loopGunEnabled = false
-local loopGunConn = nil
-local loopGunOffset = 35
-local loopGunPlatform = nil
-local antiLagEnabled, antiLagConn = false, nil
-local mapHRGui, mapHRAutoSaveConn, mapHRSavedCFrame, mapHRTPing = nil, nil, nil, false
-local autoGetGunDisabledByDeath = false
-local mapHRList = {"Bank 2","Bio Lab","Factory","Hospital 3","Hotel 2","House 2","Mansion 2","Military Base","nStudio","NSOffice","Office 3","Police Station","Research Facility","Workplace","Bank 1","Hospital 1","Hospital 2","Hotel 1","House 1","Mansion 1","Office 1","Office 2","Research Facility 1","Haunted House","Log Cabin","Workshop"}
 local function normalizeMapName(s)
     return string.lower(tostring(s)):gsub("_",""):gsub(" ",""):gsub("-","")
 end
-local mapHRSet = {}
-for _, n in ipairs(mapHRList) do mapHRSet[normalizeMapName(n)] = true end
-local avoidEnabled, avoidDistance, avoidConn = false, 25, nil
-local antiVoidEnabled, antiVoidConn, lastSafePos = false, nil, nil
-local safePlatformPart = nil
-local walkSpeedEnabled, walkSpeedValue = false, 16
-local jumpEnabled, jumpValue = false, 50
-local movementConn = nil
-local noclipEnabled = false
-local noclipConnection = nil
-local infJumpEnabled, infJumpConn = false, nil
-local xrayEnabled, xrayConn, xrayOriginal, xrayLoop = false, nil, {}, nil
-local fullbrightEnabled, fullbrightConn = false, nil
-local oldLighting = {}
-local espData = {}
-local espGunBox, espGunBillboard, espGunLoop, espGunWasFound, espGunLastHrp = nil, nil, nil, false, nil
-local aimbotMurderEnabled, aimbotSheriffEnabled, aimbotInnocentEnabled = false, false, false
-local aimbotEnabled = false
-local aimbotConn, aimbotInfoGui, aimbotInfoName, aimbotInfoDist, aimbotInfoConn, aimbotCurrentTarget = nil, nil, nil, nil, nil, nil
-local flingExecuted = false
-local trollMurderEnabled, trollMurderConn, trollSheriffEnabled, trollSheriffConn = false, nil, false, nil
-local votePadEnabled, votePadIndex, votePadLoop, votePadCharConn, votePadTPed = false, 1, nil, nil, false
-local startTime = tick()
-local fps, frameCount, lastFpsTick = 0, 0, tick()
-local lastPredictions = {}
+for _, n in ipairs(R.mapHRList) do R.mapHRSet[normalizeMapName(n)] = true end
 local function isValidOffset()
-    return loopGunOffset > avoidDistance
+    return R.loopGunOffset > R.avoidDistance
 end
 local function checkOffsetVsAvoid()
-    if avoidEnabled and loopGunEnabled then
+    if R.avoidEnabled and R.loopGunEnabled then
         if not isValidOffset() then
             pcall(function()
                 library:Addnotification({title="Invalid Value", desc="TP Behind Murder distance must be greater than Avoid distance! Please change TP Behind Murder value or Avoid input.", duration=5})
@@ -106,11 +300,11 @@ local function checkOffsetVsAvoid()
     end
 end
 RunService.RenderStepped:Connect(function()
-    frameCount = frameCount + 1
-    if tick() - lastFpsTick >= 1 then
-        fps = frameCount
-        frameCount = 0
-        lastFpsTick = tick()
+    R.frameCount = R.frameCount + 1
+    if tick() - R.lastFpsTick >= 1 then
+        R.fps = R.frameCount
+        R.frameCount = 0
+        R.lastFpsTick = tick()
     end
 end)
 local function shortenName(name, maxLen)
@@ -123,13 +317,13 @@ local function shortenName(name, maxLen)
 end
 local function setNoclip(state)
     if state ~= nil then
-        noclipEnabled = state
+        R.noclipEnabled = state
     else
-        noclipEnabled = not noclipEnabled
+        R.noclipEnabled = not R.noclipEnabled
     end
-    if noclipEnabled then
-        if not noclipConnection then
-            noclipConnection = RunService.Stepped:Connect(function()
+    if R.noclipEnabled then
+        if not R.noclipConnection then
+            R.noclipConnection = RunService.Stepped:Connect(function()
                 local character = LocalPlayer.Character
                 if character then
                     for _, part in ipairs(character:GetDescendants()) do
@@ -141,9 +335,9 @@ local function setNoclip(state)
             end)
         end
     else
-        if noclipConnection then
-            noclipConnection:Disconnect()
-            noclipConnection = nil
+        if R.noclipConnection then
+            R.noclipConnection:Disconnect()
+            R.noclipConnection = nil
         end
         local character = LocalPlayer.Character
         if character then
@@ -204,7 +398,7 @@ local function getAnyAliveInTP()
     for _, plr in ipairs(Players:GetPlayers()) do
         if plr ~= LocalPlayer and isAlive(plr) then
             local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
-            if hrp and (hrp.Position - myHrp.Position).Magnitude <= TP_RADIUS then
+            if hrp and (hrp.Position - myHrp.Position).Magnitude <= R.TP_RADIUS then
                 return plr
             end
         end
@@ -272,17 +466,31 @@ local function getInnocentPlayers()
 end
 local function getAimbotTargets()
     local arr = {}
-    if aimbotMurderEnabled then
-        local m = getMurderPlayer()
-        if m then table.insert(arr, m) end
+    if not R.toolRefreshActive and (not R.toolCache.hasGunRead or not R.toolCache.hasKnifeRead) then
+        startToolAutoRefresh()
     end
-    if aimbotSheriffEnabled then
-        local s = getSheriffPlayer()
-        if s then table.insert(arr, s) end
+    local hasGun = R.toolCache.hasGun or hasTool(LocalPlayer, "gun")
+    local hasKnife = R.toolCache.hasKnife or hasTool(LocalPlayer, "knife")
+    if not hasGun and not hasKnife then
+        return arr
     end
-    if aimbotInnocentEnabled then
-        for _, p in ipairs(getInnocentPlayers()) do
-            table.insert(arr, p)
+    if R.aimbotMurderEnabled then
+        if hasGun then
+            local m = getMurderPlayer()
+            if m then table.insert(arr, m) end
+        end
+    end
+    if R.aimbotSheriffEnabled then
+        if hasKnife then
+            local s = getSheriffPlayer()
+            if s then table.insert(arr, s) end
+        end
+    end
+    if R.aimbotInnocentEnabled then
+        if hasKnife then
+            for _, p in ipairs(getInnocentPlayers()) do
+                table.insert(arr, p)
+            end
         end
     end
     return arr
@@ -330,29 +538,49 @@ local function getAutoPredictedPosition(targetPlr, myHrp)
     local vel = tHrp.AssemblyLinearVelocity
     if vel.Magnitude < 2 and hum then
         vel = hum.MoveDirection * hum.WalkSpeed
+        vel = Vector3.new(vel.X, tHrp.AssemblyLinearVelocity.Y, vel.Z)
     end
     local flatVel = Vector3.new(vel.X, 0, vel.Z)
-    local speed = flatVel.Magnitude
-    if speed < 0.5 then
-        return tHrp.Position + Vector3.new(0, 1.5, 0)
-    end
     local distance = (tHrp.Position - myHrp.Position).Magnitude
     local timeToHit = distance / 1800 + 0.06
-    local predOffset = flatVel * timeToHit * 1.2
-    if predOffset.Magnitude > 12 then
-        predOffset = predOffset.Unit * 12
+    local yOffset = 1.5
+    local vertVel = vel.Y
+    local gravity = Workspace.Gravity
+    if hum then
+        local state = hum:GetState()
+        if state == Enum.HumanoidStateType.Jumping or state == Enum.HumanoidStateType.Freefall or hum.Jump then
+            local predictedY = vertVel * timeToHit - 0.5 * gravity * timeToHit * timeToHit * 0.25
+            predictedY = math.clamp(predictedY, -3, 6)
+            yOffset = yOffset + predictedY
+            if vertVel > 5 then
+                yOffset = yOffset + 0.8
+            end
+        else
+            if vertVel > 3 then
+                yOffset = yOffset + vertVel * timeToHit * 0.4
+            end
+        end
     end
-    local rawPred = tHrp.Position + predOffset + Vector3.new(0, 1.5, 0)
+    yOffset = math.clamp(yOffset, -1, 7)
+    local predOffset = flatVel * timeToHit * 1.25
+    if predOffset.Magnitude > 14 then
+        predOffset = predOffset.Unit * 14
+    end
+    local rawPred = tHrp.Position + predOffset + Vector3.new(0, yOffset, 0)
     local id = targetPlr.UserId
-    local last = lastPredictions[id]
+    local last = R.lastPredictions[id]
     if last then
-        rawPred = last:Lerp(rawPred, 0.55)
+        local lerpFactor = 0.65
+        if hum and (hum:GetState() == Enum.HumanoidStateType.Jumping or hum:GetState() == Enum.HumanoidStateType.Freefall) then
+            lerpFactor = 0.75
+        end
+        rawPred = last:Lerp(rawPred, lerpFactor)
     end
-    lastPredictions[id] = rawPred
+    R.lastPredictions[id] = rawPred
     return rawPred
 end
 local function createESP(plr)
-    if espData[plr] then return end
+    if R.espData[plr] then return end
     local ok, hl = pcall(function()
         local h = Instance.new("Highlight")
         h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
@@ -380,16 +608,16 @@ local function createESP(plr)
         txtName.Font = 2
     end)
     if txtRole and txtName then
-        espData[plr] = {hl = hl, txtRole = txtRole, txtName = txtName}
+        R.espData[plr] = {hl = hl, txtRole = txtRole, txtName = txtName}
     end
 end
 local function removeESP(plr)
-    local d = espData[plr]
+    local d = R.espData[plr]
     if d then
         if d.hl then pcall(function() d.hl:Destroy() end) end
         if d.txtRole then pcall(function() d.txtRole:Remove() end) end
         if d.txtName then pcall(function() d.txtName:Remove() end) end
-        espData[plr] = nil
+        R.espData[plr] = nil
     end
 end
 RunService.RenderStepped:Connect(function()
@@ -397,14 +625,14 @@ RunService.RenderStepped:Connect(function()
         local myHrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         for _, plr in ipairs(Players:GetPlayers()) do
             if plr ~= LocalPlayer then
-                if not espData[plr] then createESP(plr) end
-                local d = espData[plr]
+                if not R.espData[plr] then createESP(plr) end
+                local d = R.espData[plr]
                 if d then
                     local ch = plr.Character
                     local hrp = ch and ch:FindFirstChild("HumanoidRootPart")
                     local hum = ch and ch:FindFirstChildOfClass("Humanoid")
                     if d and hrp and hum and hum.Health > 0 then
-                        if myHrp and (hrp.Position - myHrp.Position).Magnitude > espMaxDistance then
+                        if myHrp and (hrp.Position - myHrp.Position).Magnitude > R.espMaxDistance then
                             d.hl.Enabled = false
                             d.txtRole.Visible = false
                             d.txtName.Visible = false
@@ -412,15 +640,15 @@ RunService.RenderStepped:Connect(function()
                             local hasKnife = hasTool(plr, "knife")
                             local hasGun = hasTool(plr, "gun")
                             local show, col, role = false, Color3.fromRGB(255,255,255), ""
-                            if murderEnabled and hasKnife then
+                            if R.murderEnabled and hasKnife then
                                 show = true
                                 col = Color3.fromRGB(255,0,0)
                                 role = "[MURDER]"
-                            elseif sheriffEnabled and hasGun then
+                            elseif R.sheriffEnabled and hasGun then
                                 show = true
                                 col = Color3.fromRGB(0,140,255)
                                 role = "[SHERIFF]"
-                            elseif innocentEnabled and not hasKnife and not hasGun then
+                            elseif R.innocentEnabled and not hasKnife and not hasGun then
                                 show = true
                                 col = Color3.fromRGB(0,255,0)
                                 role = "[INNOCENT]"
@@ -544,7 +772,7 @@ local function getNearestUncontested(fromPos)
     return near
 end
 local function enableNoClipTransparent()
-    savedParts = {}
+    R.savedParts = {}
     for _, o in ipairs(Workspace:GetDescendants()) do
         if o:IsA("BasePart") then
             local isChar = false
@@ -554,17 +782,17 @@ local function enableNoClipTransparent()
                     break
                 end
             end
-            if not isChar and o ~= farmPart and o ~= platformPart and o.CanCollide then
-                table.insert(savedParts, {part = o, canCollide = o.CanCollide, trans = o.Transparency})
+            if not isChar and o ~= R.farmPart and o ~= R.platformPart and o.CanCollide then
+                table.insert(R.savedParts, {part = o, canCollide = o.CanCollide, trans = o.Transparency})
                 o.CanCollide = false
                 o.Transparency = 1
             end
         end
     end
-    if farmAddConn then farmAddConn:Disconnect() end
-    farmAddConn = Workspace.DescendantAdded:Connect(function(obj)
-        if not farmEnabled or farmPausedByMurder then return end
-        if obj:IsA("BasePart") and obj.CanCollide and obj ~= farmPart and obj ~= platformPart then
+    if R.farmAddConn then R.farmAddConn:Disconnect() end
+    R.farmAddConn = Workspace.DescendantAdded:Connect(function(obj)
+        if not R.farmEnabled or R.farmPausedByMurder then return end
+        if obj:IsA("BasePart") and obj.CanCollide and obj ~= R.farmPart and obj ~= R.platformPart then
             local isChar = false
             for _, plr in ipairs(Players:GetPlayers()) do
                 if plr.Character and obj:IsDescendantOf(plr.Character) then
@@ -573,7 +801,7 @@ local function enableNoClipTransparent()
                 end
             end
             if not isChar then
-                table.insert(savedParts, {part = obj, canCollide = obj.CanCollide, trans = obj.Transparency})
+                table.insert(R.savedParts, {part = obj, canCollide = obj.CanCollide, trans = obj.Transparency})
                 obj.CanCollide = false
                 obj.Transparency = 1
             end
@@ -581,11 +809,11 @@ local function enableNoClipTransparent()
     end)
 end
 local function restoreParts()
-    if farmAddConn then
-        farmAddConn:Disconnect()
-        farmAddConn = nil
+    if R.farmAddConn then
+        R.farmAddConn:Disconnect()
+        R.farmAddConn = nil
     end
-    for _, d in ipairs(savedParts) do
+    for _, d in ipairs(R.savedParts) do
         if d.part and d.part.Parent then
             pcall(function()
                 d.part.CanCollide = d.canCollide
@@ -593,46 +821,46 @@ local function restoreParts()
             end)
         end
     end
-    savedParts = {}
+    R.savedParts = {}
 end
 local function createFarmPart()
-    if farmPart then farmPart:Destroy() end
-    if platformPart then platformPart:Destroy() end
-    farmPart = Instance.new("Part")
-    farmPart.Size = Vector3.new(1,1,1)
-    farmPart.Anchored = true
-    farmPart.CanCollide = false
-    farmPart.Transparency = 1
-    farmPart.Name = "FarmPart"
-    farmPart.Parent = Workspace
-    platformPart = Instance.new("Part")
-    platformPart.Size = Vector3.new(10,1,10)
-    platformPart.Anchored = true
-    platformPart.CanCollide = false
-    platformPart.Transparency = 1
-    platformPart.Name = "FarmPlatform"
-    platformPart.Parent = Workspace
+    if R.farmPart then R.farmPart:Destroy() end
+    if R.platformPart then R.platformPart:Destroy() end
+    R.farmPart = Instance.new("Part")
+    R.farmPart.Size = Vector3.new(1,1,1)
+    R.farmPart.Anchored = true
+    R.farmPart.CanCollide = false
+    R.farmPart.Transparency = 1
+    R.farmPart.Name = "FarmPart"
+    R.farmPart.Parent = Workspace
+    R.platformPart = Instance.new("Part")
+    R.platformPart.Size = Vector3.new(10,1,10)
+    R.platformPart.Anchored = true
+    R.platformPart.CanCollide = false
+    R.platformPart.Transparency = 1
+    R.platformPart.Name = "FarmPlatform"
+    R.platformPart.Parent = Workspace
     local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
     if hrp then
-        farmPart.CFrame = hrp.CFrame
-        platformPart.CFrame = hrp.CFrame * CFrame.new(0,-1,0)
+        R.farmPart.CFrame = hrp.CFrame
+        R.platformPart.CFrame = hrp.CFrame * CFrame.new(0,-1,0)
     end
-    return farmPart
+    return R.farmPart
 end
 local function stopFarm()
-    farmEnabled = false
-    farmPausedByMurder = false
-    if farmConn then
-        farmConn:Disconnect()
-        farmConn = nil
+    R.farmEnabled = false
+    R.farmPausedByMurder = false
+    if R.farmConn then
+        R.farmConn:Disconnect()
+        R.farmConn = nil
     end
-    if farmPart then
-        farmPart:Destroy()
-        farmPart = nil
+    if R.farmPart then
+        R.farmPart:Destroy()
+        R.farmPart = nil
     end
-    if platformPart then
-        platformPart:Destroy()
-        platformPart = nil
+    if R.platformPart then
+        R.platformPart:Destroy()
+        R.platformPart = nil
     end
     restoreParts()
     local char = LocalPlayer.Character
@@ -700,36 +928,36 @@ local function isPlayerTeleportedByServer()
     return true
 end
 local function startFarm()
-    if farmPausedByMurder then return end
-    if farmConn then farmConn:Disconnect() end
+    if R.farmPausedByMurder then return end
+    if R.farmConn then R.farmConn:Disconnect() end
     ragdollAndFarm()
     createFarmPart()
     enableNoClipTransparent()
-    farmConn = RunService.Heartbeat:Connect(function()
-        if not farmEnabled or farmPausedByMurder then return end
+    R.farmConn = RunService.Heartbeat:Connect(function()
+        if not R.farmEnabled or R.farmPausedByMurder then return end
         local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
         if hum and hum:GetState() ~= Enum.HumanoidStateType.Physics then ensureRagdoll() end
-        if hrp and farmPart then
+        if hrp and R.farmPart then
             hrp.AssemblyLinearVelocity = Vector3.zero
             hrp.AssemblyAngularVelocity = Vector3.zero
-            hrp.CFrame = farmPart.CFrame * CFrame.Angles(math.rad(90),0,0)
+            hrp.CFrame = R.farmPart.CFrame * CFrame.Angles(math.rad(90),0,0)
         end
-        if platformPart and farmPart then
-            platformPart.CFrame = farmPart.CFrame * CFrame.new(0,-1,0)
+        if R.platformPart and R.farmPart then
+            R.platformPart.CFrame = R.farmPart.CFrame * CFrame.new(0,-1,0)
         end
     end)
     task.spawn(function()
-        while farmEnabled and not farmPausedByMurder do
+        while R.farmEnabled and not R.farmPausedByMurder do
             ensureRagdoll()
-            local origin = farmPart and farmPart.Position or Vector3.new(0,0,0)
+            local origin = R.farmPart and R.farmPart.Position or Vector3.new(0,0,0)
             local target = getNearestCoin(origin)
             if not target or not target.Parent or target.Transparency >= 0.5 then
                 local spawn = findLobbySpawn()
-                if spawn and farmPart then
-                    farmPart.CFrame = CFrame.new(spawn.Position + Vector3.new(0, -45, 0))
+                if spawn and R.farmPart then
+                    R.farmPart.CFrame = CFrame.new(spawn.Position + Vector3.new(0, -45, 0))
                 else
-                    if farmPart then farmPart.CFrame = CFrame.new(0, -45, 0) end
+                    if R.farmPart then R.farmPart.CFrame = CFrame.new(0, -45, 0) end
                 end
                 task.wait(1)
             else
@@ -740,19 +968,19 @@ local function startFarm()
                     if alt and alt.Parent and alt.Transparency < 0.5 then target = alt end
                 end
                 local dest = target.Position + Vector3.new(0, -3.85, 0)
-                local stuckTime, lastDist = 0, (farmPart.Position - dest).Magnitude
-                while farmEnabled and not farmPausedByMurder and target.Parent and farmPart and (farmPart.Position - dest).Magnitude > 1.2 do
+                local stuckTime, lastDist = 0, (R.farmPart.Position - dest).Magnitude
+                while R.farmEnabled and not R.farmPausedByMurder and target.Parent and R.farmPart and (R.farmPart.Position - dest).Magnitude > 1.2 do
                     if target.Transparency >= 0.5 then break end
                     local contestedNow = isCoinContested(target)
                     if contestedNow then
                         task.wait(0.45)
-                        local alt2 = getThirdFarFromPlayer(target) or getFarthestUncontested(farmPart.Position) or getNearestUncontested(farmPart.Position)
+                        local alt2 = getThirdFarFromPlayer(target) or getFarthestUncontested(R.farmPart.Position) or getNearestUncontested(R.farmPart.Position)
                         if alt2 and alt2 ~= target and alt2.Transparency < 0.5 then
                             target = alt2
                             dest = target.Position + Vector3.new(0, -3.85, 0)
                         end
                     end
-                    local curDist = (farmPart.Position - dest).Magnitude
+                    local curDist = (R.farmPart.Position - dest).Magnitude
                     if curDist < 4 then break end
                     if math.abs(curDist - lastDist) < 0.1 then
                         stuckTime = stuckTime + task.wait()
@@ -764,25 +992,25 @@ local function startFarm()
                     local distSpeedMult = curDist > 40 and 0.45 or 1.0
                     local factor = 0.55 + 0.45 * math.clamp(curDist / 90, 0, 1)
                     local slowMult = contestedNow and 0.3 or 1.0
-                    local alpha = math.clamp((farmSpeed * 0.032 * factor) * slowMult * distSpeedMult, 0.008, 0.18)
-                    farmPart.CFrame = farmPart.CFrame:Lerp(CFrame.new(dest), alpha)
+                    local alpha = math.clamp((R.farmSpeed * 0.032 * factor) * slowMult * distSpeedMult, 0.008, 0.18)
+                    R.farmPart.CFrame = R.farmPart.CFrame:Lerp(CFrame.new(dest), alpha)
                     task.wait(contestedNow and 0.045 or 0.012)
                 end
-                if farmEnabled and not farmPausedByMurder and farmPart then
+                if R.farmEnabled and not R.farmPausedByMurder and R.farmPart then
                     for a = 0, 360, 25 do
-                        if not farmEnabled or farmPausedByMurder or not farmPart then break end
-                        farmPart.CFrame = CFrame.new(dest) * CFrame.Angles(math.rad(a),0,0)
+                        if not R.farmEnabled or R.farmPausedByMurder or not R.farmPart then break end
+                        R.farmPart.CFrame = CFrame.new(dest) * CFrame.Angles(math.rad(a),0,0)
                         task.wait(0.018)
                     end
                 end
-                local nextCoin = getNearestCoin(farmPart.Position)
-                local distNext = nextCoin and (nextCoin.Position - farmPart.Position).Magnitude or 999
+                local nextCoin = getNearestCoin(R.farmPart.Position)
+                local distNext = nextCoin and (nextCoin.Position - R.farmPart.Position).Magnitude or 999
                 local extraFarDelay = distNext > 40 and 0.45 or 0
                 if distNext >= 1 and distNext <= 15 then
-                    if farmPart then farmPart.CFrame = CFrame.new(dest) end
+                    if R.farmPart then R.farmPart.CFrame = CFrame.new(dest) end
                     task.wait(0.25 + extraFarDelay)
                 else
-                    if farmPart then farmPart.CFrame = CFrame.new(dest) end
+                    if R.farmPart then R.farmPart.CFrame = CFrame.new(dest) end
                     task.wait(0.85 + extraFarDelay)
                 end
             end
@@ -792,7 +1020,7 @@ end
 local function findMediumFloorFromMurder(murderPos)
     local candidates = {}
     for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("BasePart") and obj.CanCollide and obj.Parent and obj ~= farmPart and obj ~= platformPart then
+        if obj:IsA("BasePart") and obj.CanCollide and obj.Parent and obj ~= R.farmPart and obj ~= R.platformPart then
             local isChar = false
             for _, plr in ipairs(Players:GetPlayers()) do
                 if plr.Character and obj:IsDescendantOf(plr.Character) then
@@ -814,11 +1042,11 @@ local function findMediumFloorFromMurder(murderPos)
     return candidates[mid].part
 end
 local function startAvoid()
-    if avoidConn then avoidConn:Disconnect() end
-    avoidConn = RunService.Heartbeat:Connect(function()
-        if not avoidEnabled then return end
+    if R.avoidConn then R.avoidConn:Disconnect() end
+    R.avoidConn = RunService.Heartbeat:Connect(function()
+        if not R.avoidEnabled then return end
         if hasKnifeInBackpack() then return end
-        if avoidEnabled and loopGunEnabled and not isValidOffset() then
+        if R.avoidEnabled and R.loopGunEnabled and not isValidOffset() then
             if hasGunInBackpack() then
                 return
             end
@@ -828,7 +1056,7 @@ local function startAvoid()
         local mHrp = murderPlr.Character and murderPlr.Character:FindFirstChild("HumanoidRootPart")
         local myHrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         if not mHrp or not myHrp then return end
-        if (mHrp.Position - myHrp.Position).Magnitude <= avoidDistance then
+        if (mHrp.Position - myHrp.Position).Magnitude <= R.avoidDistance then
             local part = findMediumFloorFromMurder(mHrp.Position)
             if part then
                 myHrp.CFrame = CFrame.new(part.Position + Vector3.new(0,4,0))
@@ -838,53 +1066,53 @@ local function startAvoid()
     end)
 end
 local function stopAvoid()
-    if avoidConn then
-        avoidConn:Disconnect()
-        avoidConn = nil
+    if R.avoidConn then
+        R.avoidConn:Disconnect()
+        R.avoidConn = nil
     end
 end
 local function startTP()
-    if killAuraConn then
-        killAuraConn:Disconnect()
-        killAuraConn = nil
+    if R.killAuraConn then
+        R.killAuraConn:Disconnect()
+        R.killAuraConn = nil
     end
-    if killAllThread then
-        pcall(function() task.cancel(killAllThread) end)
-        killAllThread = nil
+    if R.killAllThread then
+        pcall(function() task.cancel(R.killAllThread) end)
+        R.killAllThread = nil
     end
-    killAuraConn = RunService.Heartbeat:Connect(function()
-        if not killAuraEnabled then return end
+    R.killAuraConn = RunService.Heartbeat:Connect(function()
+        if not R.killAuraEnabled then return end
         if not hasKnifeInBackpack() then return end
         local myChar = LocalPlayer.Character
         local myHrp = myChar and myChar:FindFirstChild("HumanoidRootPart")
         if not myHrp then return end
-        if currentTarget and isAlive(currentTarget) then
-            local cHrp = currentTarget.Character and currentTarget.Character:FindFirstChild("HumanoidRootPart")
+        if R.currentTarget and isAlive(R.currentTarget) then
+            local cHrp = R.currentTarget.Character and R.currentTarget.Character:FindFirstChild("HumanoidRootPart")
             if cHrp and (cHrp.Position - myHrp.Position).Magnitude > 250 then
-                currentTarget = nil
+                R.currentTarget = nil
             end
         end
         local sheriff = getSheriffPlayer()
         if sheriff and isAlive(sheriff) then
             local sHrp = sheriff.Character and sheriff.Character:FindFirstChild("HumanoidRootPart")
             if sHrp and (sHrp.Position - myHrp.Position).Magnitude <= 250 then
-                currentTarget = sheriff
+                R.currentTarget = sheriff
             end
         end
-        if not currentTarget or not isAlive(currentTarget) then
-            currentTarget = getNearestPlayer()
-            if not currentTarget then
-                currentTarget = getAnyAliveInTP()
+        if not R.currentTarget or not isAlive(R.currentTarget) then
+            R.currentTarget = getNearestPlayer()
+            if not R.currentTarget then
+                R.currentTarget = getAnyAliveInTP()
             end
         end
-        if not currentTarget or not isAlive(currentTarget) then return end
-        local tHrp = currentTarget.Character and currentTarget.Character:FindFirstChild("HumanoidRootPart")
+        if not R.currentTarget or not isAlive(R.currentTarget) then return end
+        local tHrp = R.currentTarget.Character and R.currentTarget.Character:FindFirstChild("HumanoidRootPart")
         if not tHrp then return end
         local newSheriff = getSheriffPlayer()
-        if newSheriff and isAlive(newSheriff) and newSheriff ~= currentTarget then
+        if newSheriff and isAlive(newSheriff) and newSheriff ~= R.currentTarget then
             local nsHrp = newSheriff.Character and newSheriff.Character:FindFirstChild("HumanoidRootPart")
             if nsHrp and (nsHrp.Position - myHrp.Position).Magnitude <= 250 then
-                currentTarget = newSheriff
+                R.currentTarget = newSheriff
                 return
             end
         end
@@ -900,16 +1128,16 @@ local function startTP()
     end)
 end
 local function stopTP()
-    killAuraEnabled = false
-    if killAuraConn then
-        killAuraConn:Disconnect()
-        killAuraConn = nil
+    R.killAuraEnabled = false
+    if R.killAuraConn then
+        R.killAuraConn:Disconnect()
+        R.killAuraConn = nil
     end
-    if killAllThread then
-        pcall(function() task.cancel(killAllThread) end)
-        killAllThread = nil
+    if R.killAllThread then
+        pcall(function() task.cancel(R.killAllThread) end)
+        R.killAllThread = nil
     end
-    currentTarget = nil
+    R.currentTarget = nil
     pcall(function() UserInputService.MouseBehavior = Enum.MouseBehavior.Default end)
 end
 local function hrpHasParticle(hrp)
@@ -925,7 +1153,7 @@ local function getMapNameFromHRP(hrp)
     for i=1,12 do
         if not cur then break end
         local norm = normalizeMapName(cur.Name)
-        if mapHRSet[norm] then return cur.Name end
+        if R.mapHRSet[norm] then return cur.Name end
         cur = cur.Parent
     end
     return "Unknown Map"
@@ -938,9 +1166,101 @@ local function findMapFolder(normalizedName)
     end
     return nil
 end
+local function hasMaplist()
+    for _, mapName in ipairs(R.mapHRList) do
+        local norm = normalizeMapName(mapName)
+        for _, obj in ipairs(Workspace:GetChildren()) do
+            if normalizeMapName(obj.Name) == norm then
+                return true, obj
+            end
+        end
+    end
+    return false, nil
+end
+local function hasSheriffInServer()
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer and isAlive(plr) then
+            if plr.Backpack:FindFirstChild("Gun") or (plr.Character and plr.Character:FindFirstChild("Gun")) then
+                return true
+            end
+            if plr:GetAttribute("Role") == "Sheriff" then
+                return true
+            end
+        end
+    end
+    local sheriff = getSheriffPlayer()
+    return sheriff ~= nil
+end
+local function isMurderNearHRP(targetHRP, radius)
+    radius = radius or 7
+    local murderPlr = getMurderPlayer()
+    if not murderPlr then return false end
+    local mChar = murderPlr.Character
+    local mHrp = mChar and mChar:FindFirstChild("HumanoidRootPart")
+    if not mHrp or not targetHRP then return false end
+    local dist = (mHrp.Position - targetHRP.Position).Magnitude
+    return dist <= radius
+end
+local function startAutoGetGun()
+    if R.autoGetGunThread then pcall(function() task.cancel(R.autoGetGunThread) end) R.autoGetGunThread = nil end
+    if R.autoGetGunLoop then pcall(function() task.cancel(R.autoGetGunLoop) end) R.autoGetGunLoop = nil end
+    if R.autoGetGunSheriffCheck then pcall(function() task.cancel(R.autoGetGunSheriffCheck) end) R.autoGetGunSheriffCheck = nil end
+    if R.autoGetGunMaplistCheck then pcall(function() task.cancel(R.autoGetGunMaplistCheck) end) R.autoGetGunMaplistCheck = nil end
+    if R.autoGetGunRefreshConn then pcall(function() R.autoGetGunRefreshConn:Disconnect() end) R.autoGetGunRefreshConn = nil end
+    startSaveCFrame()
+    R.autoGetGunMaplistCheck = task.spawn(function()
+        while R.autoGetGunEnabled do
+            local hasMap = hasMaplist()
+            local hasSheriff = hasSheriffInServer()
+            if not hasMap or hasSheriff then
+                if R.autoGetGunThread then pcall(function() task.cancel(R.autoGetGunThread) end) R.autoGetGunThread = nil end
+                task.wait(1)
+            else
+                if not R.autoGetGunThread then
+                    R.autoGetGunThread = task.spawn(function()
+                        while R.autoGetGunEnabled do
+                            local hasMap2 = hasMaplist()
+                            local hasSheriff2 = hasSheriffInServer()
+                            if not hasMap2 or hasSheriff2 then break end
+                            if hasGunInBackpack() then
+                                task.wait(0.8)
+                            else
+                                local myChar = LocalPlayer.Character
+                                local myHrp = myChar and myChar:FindFirstChild("HumanoidRootPart")
+                                if myHrp then
+                                    local targetHRP = findHRPInMaps()
+                                    if targetHRP and targetHRP.Parent and hrpHasParticle(targetHRP) then
+                                        if isMurderNearHRP(targetHRP, 7) then
+                                            task.wait(0.5)
+                                        else
+                                            if not R.mapHRTPing then
+                                                R.mapHRTPing = true
+                                                local before = R.mapHRSavedCFrame or myHrp.CFrame
+                                                myHrp.CFrame = CFrame.new(targetHRP.Position + Vector3.new(0,3,0))
+                                                task.wait(0.2)
+                                                if myHrp and myHrp.Parent then
+                                                    myHrp.CFrame = before
+                                                end
+                                                task.wait(0.1)
+                                                R.mapHRTPing = false
+                                                task.wait(1.5)
+                                            end
+                                        end
+                                    end
+                                end
+                                task.wait(0.5)
+                            end
+                        end
+                    end)
+                end
+                task.wait(1)
+            end
+        end
+    end)
+end
 local function findHRPInMaps()
     local allRaggyCandidates = {}
-    for _, mapName in ipairs(mapHRList) do
+    for _, mapName in ipairs(R.mapHRList) do
         local norm = normalizeMapName(mapName)
         local folder = findMapFolder(norm)
         if not folder then
@@ -1001,246 +1321,288 @@ local function findHRPInMaps()
     return nil
 end
 local function startSaveCFrame()
-    if mapHRAutoSaveConn then return end
+    if R.mapHRAutoSaveConn then return end
     local myHrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if myHrp then mapHRSavedCFrame = myHrp.CFrame end
-    mapHRAutoSaveConn = RunService.Heartbeat:Connect(function()
-        if mapHRTPing then return end
+    if myHrp then R.mapHRSavedCFrame = myHrp.CFrame end
+    R.mapHRAutoSaveConn = RunService.Heartbeat:Connect(function()
+        if R.mapHRTPing then return end
         local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if hrp and hrp.Position.Y > -50 then mapHRSavedCFrame = hrp.CFrame end
+        if hrp and hrp.Position.Y > -50 then R.mapHRSavedCFrame = hrp.CFrame end
     end)
 end
 local function stopSaveCFrameIfNeeded()
-    if not mapHREnabled and not autoGetGunEnabled and not loopGunEnabled then
-        if mapHRAutoSaveConn then
-            mapHRAutoSaveConn:Disconnect()
-            mapHRAutoSaveConn = nil
+    if not R.mapHREnabled and not R.autoGetGunEnabled and not R.loopGunEnabled then
+        if R.mapHRAutoSaveConn then
+            R.mapHRAutoSaveConn:Disconnect()
+            R.mapHRAutoSaveConn = nil
         end
-        mapHRSavedCFrame = nil
-        mapHRTPing = false
+        R.mapHRSavedCFrame = nil
+        R.mapHRTPing = false
     end
 end
 local function startESPGun()
-    if espGunLoop then pcall(function() task.cancel(espGunLoop) end) espGunLoop = nil end
-    espGunWasFound = false
-    espGunLastHrp = nil
-    espGunLoop = task.spawn(function()
-        while espGunEnabled do
+    if R.espGunLoop then pcall(function() task.cancel(R.espGunLoop) end) R.espGunLoop = nil end
+    if R.espGunDescConn then pcall(function() R.espGunDescConn:Disconnect() end) R.espGunDescConn = nil end
+    R.espGunWasFound = false
+    R.espGunLastHrp = nil
+    R.espGunNotified = false
+    local function isValidGunPart(part)
+        if not part or not part.Parent then return false end
+        if part.Name ~= "HumanoidRootPart" then return false end
+        if not part:IsA("BasePart") then return false end
+        if not hrpHasParticle(part) then return false end
+        for _, plr in ipairs(Players:GetPlayers()) do
+            if plr.Character and part:IsDescendantOf(plr.Character) then return false end
+        end
+        return true
+    end
+    local function createOrUpdateESP(hrp)
+        if not hrp or not hrp.Parent then return end
+        local sheriff = getSheriffPlayer()
+        if sheriff and isAlive(sheriff) then
+            if R.espGunBox then pcall(function() R.espGunBox:Destroy() end) R.espGunBox=nil end
+            if R.espGunBillboard then pcall(function() R.espGunBillboard:Destroy() end) R.espGunBillboard=nil end
+            R.espGunLastHrp = nil
+            R.espGunNotified = false
+            return
+        end
+        if R.espGunLastHrp == hrp and R.espGunBox and R.espGunBox.Parent then
+            pcall(function() R.espGunBox.Size = hrp.Size end)
+            return
+        end
+        if R.espGunBox then pcall(function() R.espGunBox:Destroy() end) R.espGunBox=nil end
+        if R.espGunBillboard then pcall(function() R.espGunBillboard:Destroy() end) R.espGunBillboard=nil end
+        local box = Instance.new("BoxHandleAdornment")
+        box.Name = "ESP_GUN_BOX"
+        box.Adornee = hrp
+        box.Size = hrp.Size
+        box.Color3 = Color3.fromRGB(0,255,0)
+        box.Transparency = 0.4
+        box.AlwaysOnTop = true
+        box.ZIndex = 5
+        box.Parent = Workspace
+        R.espGunBox = box
+        local bg = Instance.new("BillboardGui")
+        bg.Name = "ESP_GUN_NAME"
+        bg.Adornee = hrp
+        bg.Size = UDim2.new(0,120,0,40)
+        bg.StudsOffset = Vector3.new(0,4,0)
+        bg.AlwaysOnTop = true
+        bg.Parent = Workspace
+        local lbl = Instance.new("TextLabel")
+        lbl.Size = UDim2.new(1,0,1,0)
+        lbl.BackgroundTransparency = 0.3
+        lbl.BackgroundColor3 = Color3.fromRGB(0,0,0)
+        lbl.Text = "GUN"
+        lbl.TextColor3 = Color3.fromRGB(0,255,0)
+        lbl.TextStrokeTransparency = 0
+        lbl.TextStrokeColor3 = Color3.fromRGB(0,0,0)
+        lbl.TextScaled = true
+        lbl.Font = Enum.Font.GothamBold
+        Instance.new("UICorner", lbl).CornerRadius = UDim.new(0,6)
+        lbl.Parent = bg
+        R.espGunBillboard = bg
+        R.espGunLastHrp = hrp
+        if R.espGunTextLoop then task.cancel(R.espGunTextLoop) end
+        R.espGunTextLoop = task.spawn(function()
+            while R.espGunEnabled and R.espGunBillboard and hrp.Parent do
+                local sheriffCheck = getSheriffPlayer()
+                if sheriffCheck and isAlive(sheriffCheck) then
+                    if R.espGunBox then pcall(function() R.espGunBox:Destroy() end) R.espGunBox=nil end
+                    if R.espGunBillboard then pcall(function() R.espGunBillboard:Destroy() end) R.espGunBillboard=nil end
+                    R.espGunLastHrp = nil
+                    R.espGunNotified = false
+                    break
+                end
+                pcall(function()
+                    local myHrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                    if myHrp then
+                        local dist = math.floor((hrp.Position - myHrp.Position).Magnitude)
+                        lbl.Text = "GUN ["..dist.."m]"
+                    end
+                end)
+                task.wait(0.5)
+            end
+        end)
+        if not R.espGunNotified then
+            R.espGunNotified = true
+            R.espGunWasFound = true
+            local mapName = getMapNameFromHRP(hrp)
+            pcall(function() library:Addnotification({title = "ESP Gun", desc = "Gun spawned at "..mapName.."!", duration = 4}) end)
+        end
+    end
+    R.espGunDescConn = Workspace.DescendantAdded:Connect(function(obj)
+        if not R.espGunEnabled then return end
+        task.wait(0.1)
+        if isValidGunPart(obj) then
+            createOrUpdateESP(obj)
+        end
+    end)
+    R.espGunLoop = task.spawn(function()
+        while R.espGunEnabled do
             local sheriff = getSheriffPlayer()
             if sheriff and isAlive(sheriff) then
-                if espGunBox then pcall(function() espGunBox:Destroy() end) espGunBox = nil end
-                if espGunBillboard then pcall(function() espGunBillboard:Destroy() end) espGunBillboard = nil end
-                espGunLastHrp = nil
-                espGunWasFound = false
-                task.wait(0.6)
+                if R.espGunBox then pcall(function() R.espGunBox:Destroy() end) R.espGunBox = nil end
+                if R.espGunBillboard then pcall(function() R.espGunBillboard:Destroy() end) R.espGunBillboard = nil end
+                R.espGunLastHrp = nil
+                R.espGunWasFound = false
+                R.espGunNotified = false
+                task.wait(1)
             else
                 local hrp = findHRPInMaps()
-                if hrp and hrp.Parent and hrpHasParticle(hrp) then
-                    if not espGunBox or espGunLastHrp ~= hrp or not espGunBox.Parent then
-                        if espGunBox then pcall(function() espGunBox:Destroy() end) espGunBox=nil end
-                        if espGunBillboard then pcall(function() espGunBillboard:Destroy() end) espGunBillboard=nil end
-                        local box = Instance.new("BoxHandleAdornment")
-                        box.Name = "ESP_GUN_BOX"
-                        box.Adornee = hrp
-                        box.Size = hrp.Size
-                        box.Color3 = Color3.fromRGB(255,255,0)
-                        box.Transparency = 0.3
-                        box.AlwaysOnTop = true
-                        box.ZIndex = 5
-                        box.Parent = Workspace
-                        espGunBox = box
-                        local bg = Instance.new("BillboardGui")
-                        bg.Name = "ESP_GUN_NAME"
-                        bg.Adornee = hrp
-                        bg.Size = UDim2.new(0,100,0,30)
-                        bg.StudsOffset = Vector3.new(0,3.5,0)
-                        bg.AlwaysOnTop = true
-                        bg.Parent = Workspace
-                        local lbl = Instance.new("TextLabel")
-                        lbl.Size = UDim2.new(1,0,1,0)
-                        lbl.BackgroundTransparency = 1
-                        lbl.Text = "GUN"
-                        lbl.TextColor3 = Color3.fromRGB(255,255,0)
-                        lbl.TextStrokeTransparency = 0
-                        lbl.TextStrokeColor3 = Color3.fromRGB(0,0,0)
-                        lbl.TextScaled = true
-                        lbl.Font = Enum.Font.GothamBold
-                        lbl.Parent = bg
-                        espGunBillboard = bg
-                    else
-                        if espGunBox then espGunBox.Size = hrp.Size end
-                    end
-                    espGunLastHrp = hrp
-                    if not espGunWasFound then
-                        espGunWasFound = true
-                        local mapName = getMapNameFromHRP(hrp)
-                        pcall(function() library:Addnotification({title = "ESP Gun", desc = "Gun spawned at "..mapName.."!", duration = 5}) end)
-                    end
-                    task.wait(0.2)
+                if hrp and isValidGunPart(hrp) then
+                    createOrUpdateESP(hrp)
                 else
-                    if espGunBox then pcall(function() espGunBox:Destroy() end) espGunBox = nil end
-                    if espGunBillboard then pcall(function() espGunBillboard:Destroy() end) espGunBillboard = nil end
-                    espGunLastHrp = nil
-                    if espGunWasFound then espGunWasFound = false end
-                    task.wait(0.5)
+                    if R.espGunBox then pcall(function() R.espGunBox:Destroy() end) R.espGunBox = nil end
+                    if R.espGunBillboard then pcall(function() R.espGunBillboard:Destroy() end) R.espGunBillboard = nil end
+                    R.espGunLastHrp = nil
+                    R.espGunNotified = false
+                    R.espGunWasFound = false
                 end
+                task.wait(1)
             end
         end
     end)
 end
 local function stopESPGun()
-    espGunEnabled = false
-    if espGunLoop then pcall(function() task.cancel(espGunLoop) end) espGunLoop = nil end
-    if espGunBox then pcall(function() espGunBox:Destroy() end) espGunBox = nil end
-    if espGunBillboard then pcall(function() espGunBillboard:Destroy() end) espGunBillboard = nil end
-    espGunWasFound = false
-    espGunLastHrp = nil
+    R.espGunEnabled = false
+    if R.espGunLoop then pcall(function() task.cancel(R.espGunLoop) end) R.espGunLoop = nil end
+    if R.espGunDescConn then pcall(function() R.espGunDescConn:Disconnect() end) R.espGunDescConn = nil end
+    if R.espGunTextLoop then pcall(function() task.cancel(R.espGunTextLoop) end) R.espGunTextLoop = nil end
+    if R.espGunBox then pcall(function() R.espGunBox:Destroy() end) R.espGunBox = nil end
+    if R.espGunBillboard then pcall(function() R.espGunBillboard:Destroy() end) R.espGunBillboard = nil end
+    R.espGunWasFound = false
+    R.espGunLastHrp = nil
+    R.espGunNotified = false
 end
+
 local function startLoopGun()
-    if loopGunConn then
-        loopGunConn:Disconnect()
-        loopGunConn = nil
+    if R.loopGunConn then
+        R.loopGunConn:Disconnect()
+        R.loopGunConn = nil
     end
-    if loopGunPlatform then
-        pcall(function() loopGunPlatform:Destroy() end)
-        loopGunPlatform = nil
+    if R.loopGunPlatform then
+        pcall(function() R.loopGunPlatform:Destroy() end)
+        R.loopGunPlatform = nil
     end
-    loopGunPlatform = Instance.new("Part")
-    loopGunPlatform.Name = "LoopGunPlatform"
-    loopGunPlatform.Size = Vector3.new(14,1,14)
-    loopGunPlatform.Anchored = true
-    loopGunPlatform.CanCollide = true
-    loopGunPlatform.Transparency = 0.5
-    loopGunPlatform.Material = Enum.Material.ForceField
-    loopGunPlatform.Color = Color3.fromRGB(100,100,255)
-    loopGunPlatform.Parent = Workspace
+    R.loopGunPlatform = Instance.new("Part")
+    R.loopGunPlatform.Name = "LoopGunPlatform"
+    R.loopGunPlatform.Size = Vector3.new(14,1,14)
+    R.loopGunPlatform.Anchored = true
+    R.loopGunPlatform.CanCollide = true
+    R.loopGunPlatform.Transparency = 0.5
+    R.loopGunPlatform.Material = Enum.Material.ForceField
+    R.loopGunPlatform.Color = Color3.fromRGB(100,100,255)
+    R.loopGunPlatform.Parent = Workspace
     startSaveCFrame()
-    loopGunConn = RunService.Heartbeat:Connect(function()
-        if not loopGunEnabled then return end
-        if mapHRTPing then return end
+    local MIN_RADIUS = 12
+    R.gravityBackup = Workspace.Gravity
+    R.isFlying = false
+    local function handleGravity(isTeleporting)
+        if isTeleporting then
+            if Workspace.Gravity > 35 then
+                R.gravityBackup = Workspace.Gravity
+            end
+            Workspace.Gravity = 30
+        else
+            local char = LocalPlayer.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            if hrp and hum then
+                local velY = hrp.AssemblyLinearVelocity.Y
+                if velY > 20 or hum:GetState() == Enum.HumanoidStateType.Freefall then
+                    if tick() - (R.lastFreefallTime or 0) > 0.5 then
+                        R.isFlying = true
+                    end
+                    if not R.lastFreefallTime then
+                        R.lastFreefallTime = tick()
+                    end
+                else
+                    R.lastFreefallTime = nil
+                    R.isFlying = false
+                end
+                if R.isFlying then
+                    if Workspace.Gravity < 196.2 then
+                        Workspace.Gravity = math.min(Workspace.Gravity + 15, 196.2)
+                    else
+                        R.isFlying = false
+                    end
+                else
+                    if Workspace.Gravity < R.gravityBackup then
+                        Workspace.Gravity = math.min(Workspace.Gravity + 5, R.gravityBackup)
+                    end
+                end
+            end
+        end
+    end
+    R.loopGunConn = RunService.Heartbeat:Connect(function()
+        if not R.loopGunEnabled then
+            handleGravity(false)
+            return
+        end
+        if R.mapHRTPing then return end
         local char = LocalPlayer.Character
         local myHrp = char and char:FindFirstChild("HumanoidRootPart")
         if not myHrp then return end
-        if loopGunPlatform and loopGunPlatform.Parent then
-            loopGunPlatform.CFrame = CFrame.new(myHrp.Position + Vector3.new(0, -5, 0))
+        if R.loopGunPlatform and R.loopGunPlatform.Parent then
+            R.loopGunPlatform.CFrame = CFrame.new(myHrp.Position + Vector3.new(0, -5, 0))
         end
         if not hasGunInBackpack() then
-            if avoidEnabled and not isValidOffset() then
-                return
-            end
+            if R.avoidEnabled and not isValidOffset() then return end
+            handleGravity(false)
             return
         end
         local murderPlr = getMurderPlayer()
         if murderPlr and isAlive(murderPlr) then
             local mHrp = murderPlr.Character and murderPlr.Character:FindFirstChild("HumanoidRootPart")
-            if mHrp then
-                myHrp.CFrame = mHrp.CFrame * CFrame.new(0,0,loopGunOffset)
+            local mHum = murderPlr.Character and murderPlr.Character:FindFirstChildOfClass("Humanoid")
+            if mHrp and mHum then
+                pcall(function()
+                    mHum.JumpPower = 0
+                    mHum.JumpHeight = 0
+                    if mHum.UseJumpPower then
+                        mHum.JumpPower = 0
+                    else
+                        mHum.JumpHeight = 0
+                    end
+                    mHrp.AssemblyLinearVelocity = Vector3.new(mHrp.AssemblyLinearVelocity.X, 0, mHrp.AssemblyLinearVelocity.Z)
+                    if mHum:GetState() == Enum.HumanoidStateType.Jumping or mHum:GetState() == Enum.HumanoidStateType.Freefall then
+                        mHum:ChangeState(Enum.HumanoidStateType.Running)
+                    end
+                end)
+                local radius = math.max(R.loopGunOffset, MIN_RADIUS)
+                local behindOffset = CFrame.new(0,0,radius)
+                local targetCF = mHrp.CFrame * behindOffset
+                myHrp.CFrame = targetCF
+                myHrp.AssemblyLinearVelocity = Vector3.zero
+                handleGravity(true)
+                handleGravity(false)
             end
+        else
+            handleGravity(false)
         end
     end)
 end
 local function stopLoopGun()
-    loopGunEnabled = false
-    if loopGunConn then
-        loopGunConn:Disconnect()
-        loopGunConn = nil
+    R.loopGunEnabled = false
+    if R.loopGunConn then
+        R.loopGunConn:Disconnect()
+        R.loopGunConn = nil
     end
-    if loopGunPlatform then
-        pcall(function() loopGunPlatform:Destroy() end)
-        loopGunPlatform = nil
+    if R.loopGunPlatform then
+        pcall(function() R.loopGunPlatform:Destroy() end)
+        R.loopGunPlatform = nil
     end
     stopSaveCFrameIfNeeded()
 end
-local function isSpecialPart(obj)
-    return obj == farmPart or obj == platformPart or obj == safePlatformPart or obj == loopGunPlatform
-end
+
 local function isCharPart(obj)
     for _, plr in ipairs(Players:GetPlayers()) do
         if plr.Character and obj:IsDescendantOf(plr.Character) then return true end
     end
     return false
 end
-local function applyAntiLagRules(obj)
-    if not obj or not obj.Parent then return end
-    if isSpecialPart(obj) then return end
-    if obj:IsA("BasePart") then
-        if isCharPart(obj) then
-            pcall(function() obj.CastShadow = false end)
-        else
-            if not obj.CanCollide then
-                pcall(function() obj:Destroy() end)
-            elseif obj.Size.Magnitude < 2.5 then
-                pcall(function() obj:Destroy() end)
-            else
-                pcall(function()
-                    obj.CastShadow = false
-                    obj.Material = Enum.Material.SmoothPlastic
-                    if obj:IsA("MeshPart") then obj.TextureID = "" end
-                end)
-            end
-        end
-    elseif obj:IsA("ParticleEmitter") or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Sparkles") or obj:IsA("Trail") or obj:IsA("Beam") then
-        pcall(function() obj:Destroy() end)
-    elseif obj:IsA("Decal") or obj:IsA("Texture") or obj:IsA("SurfaceAppearance") then
-        pcall(function() obj:Destroy() end)
-    elseif obj:IsA("PointLight") or obj:IsA("SpotLight") or obj:IsA("SurfaceLight") then
-        pcall(function() obj:Destroy() end)
-    elseif obj:IsA("Accessory") then
-        if isCharPart(obj) then pcall(function() obj:Destroy() end) end
-    elseif obj:IsA("Animator") then
-        local par = obj.Parent
-        if par and par:IsA("Humanoid") then
-            local model = par.Parent
-            local isCharModel = false
-            for _, plr in ipairs(Players:GetPlayers()) do
-                if plr.Character and model == plr.Character then isCharModel = true break end
-            end
-            if not isCharModel then pcall(function() obj:Destroy() end) end
-        end
-    end
-end
-local function startAntiLagAutoRefresh()
-    if antiLagConn then antiLagConn:Disconnect() antiLagConn = nil end
-    antiLagEnabled = true
-    pcall(function() setfpscap(120) end)
-    pcall(function()
-        Lighting.Shadows = false
-        Lighting.GlobalShadows = false
-        Lighting.FogEnd = 100000
-        Lighting.Brightness = 2
-        Lighting.Ambient = Color3.fromRGB(200,200,200)
-        Lighting.OutdoorAmbient = Color3.fromRGB(200,200,200)
-        Lighting.ExposureCompensation = 0
-    end)
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        applyAntiLagRules(obj)
-    end
-    for _, plr in ipairs(Players:GetPlayers()) do
-        if plr.Character then
-            for _, v in ipairs(plr.Character:GetDescendants()) do
-                if v:IsA("Accessory") then pcall(function() v:Destroy() end) end
-                if v:IsA("BasePart") then pcall(function() v.CastShadow = false end) end
-            end
-        end
-    end
-    antiLagConn = Workspace.DescendantAdded:Connect(function(obj)
-        if not antiLagEnabled then return end
-        task.wait(0.05)
-        applyAntiLagRules(obj)
-        if obj:IsA("Model") or obj:IsA("Folder") then
-            for _, d in ipairs(obj:GetDescendants()) do
-                applyAntiLagRules(d)
-            end
-        end
-    end)
-end
-local function stopAntiLagAutoRefresh()
-    antiLagEnabled = false
-    if antiLagConn then
-        antiLagConn:Disconnect()
-        antiLagConn = nil
-    end
-end
+
 local function findDetectors()
     local detectors = {}
     for _, obj in ipairs(Workspace:GetDescendants()) do
@@ -1281,20 +1643,20 @@ local function isAnyOtherPlayerHasWeapon()
     return false
 end
 local function startVotePad()
-    votePadTPed = false
-    if votePadCharConn then votePadCharConn:Disconnect() votePadCharConn = nil end
-    votePadCharConn = LocalPlayer.CharacterAdded:Connect(function(char)
+    R.votePadTPed = false
+    if R.votePadCharConn then R.votePadCharConn:Disconnect() R.votePadCharConn = nil end
+    R.votePadCharConn = LocalPlayer.CharacterAdded:Connect(function(char)
         char:WaitForChild("HumanoidRootPart", 5)
         task.wait(0.5)
-        if votePadEnabled then tpToDetector(votePadIndex) end
+        if R.votePadEnabled then tpToDetector(R.votePadIndex) end
     end)
-    if votePadLoop then pcall(function() task.cancel(votePadLoop) end) votePadLoop = nil end
-    votePadLoop = task.spawn(function()
-        while votePadEnabled do
-            if not votePadTPed then
+    if R.votePadLoop then pcall(function() task.cancel(R.votePadLoop) end) R.votePadLoop = nil end
+    R.votePadLoop = task.spawn(function()
+        while R.votePadEnabled do
+            if not R.votePadTPed then
                 if not isAnyOtherPlayerHasWeapon() then
-                    local ok = tpToDetector(votePadIndex)
-                    if ok then votePadTPed = true end
+                    local ok = tpToDetector(R.votePadIndex)
+                    if ok then R.votePadTPed = true end
                 end
             end
             task.wait(0.5)
@@ -1302,33 +1664,33 @@ local function startVotePad()
     end)
 end
 local function stopVotePad()
-    votePadEnabled = false
-    votePadTPed = false
-    if votePadLoop then pcall(function() task.cancel(votePadLoop) end) votePadLoop = nil end
-    if votePadCharConn then votePadCharConn:Disconnect() votePadCharConn = nil end
+    R.votePadEnabled = false
+    R.votePadTPed = false
+    if R.votePadLoop then pcall(function() task.cancel(R.votePadLoop) end) R.votePadLoop = nil end
+    if R.votePadCharConn then R.votePadCharConn:Disconnect() R.votePadCharConn = nil end
 end
 local function startMovement()
-    if movementConn then movementConn:Disconnect() end
-    movementConn = RunService.Heartbeat:Connect(function()
+    if R.movementConn then R.movementConn:Disconnect() end
+    R.movementConn = RunService.Heartbeat:Connect(function()
         local char = LocalPlayer.Character
         local hum = char and char:FindFirstChildOfClass("Humanoid")
         if hum then
-            if walkSpeedEnabled then hum.WalkSpeed = walkSpeedValue end
-            if jumpEnabled then
+            if R.walkSpeedEnabled then hum.WalkSpeed = R.walkSpeedValue end
+            if R.jumpEnabled then
                 if hum.UseJumpPower then
-                    hum.JumpPower = jumpValue
+                    hum.JumpPower = R.jumpValue
                 else
-                    hum.JumpHeight = jumpValue
+                    hum.JumpHeight = R.jumpValue
                 end
             end
         end
     end)
 end
 local function stopMovement()
-    if not walkSpeedEnabled and not jumpEnabled then
-        if movementConn then
-            movementConn:Disconnect()
-            movementConn = nil
+    if not R.walkSpeedEnabled and not R.jumpEnabled then
+        if R.movementConn then
+            R.movementConn:Disconnect()
+            R.movementConn = nil
         end
         local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
         if hum then
@@ -1367,9 +1729,9 @@ local function makeDraggable(frame)
     end)
 end
 local function startAimbotLoop()
-    if aimbotConn then aimbotConn:Disconnect() end
-    if aimbotInfoConn then aimbotInfoConn:Disconnect() end
-    if aimbotInfoGui then pcall(function() aimbotInfoGui:Destroy() end) end
+    if R.aimbotConn then R.aimbotConn:Disconnect() end
+    if R.aimbotInfoConn then R.aimbotInfoConn:Disconnect() end
+    if R.aimbotInfoGui then pcall(function() R.aimbotInfoGui:Destroy() end) end
     local sg = Instance.new("ScreenGui")
     sg.Name = "AimbotInfoGUI"
     sg.ResetOnSpawn = false
@@ -1391,7 +1753,7 @@ local function startAimbotLoop()
     local title = Instance.new("TextLabel")
     title.Size = UDim2.new(1,0,0,16)
     title.BackgroundTransparency = 1
-    title.Text = "AIMBOT info"
+    title.Text = "AIMBOT INFO"
     title.TextColor3 = Color3.fromRGB(255,255,255)
     title.TextScaled = true
     title.Font = Enum.Font.GothamBold
@@ -1416,16 +1778,24 @@ local function startAimbotLoop()
     distLbl.Font = Enum.Font.Gotham
     distLbl.TextXAlignment = Enum.TextXAlignment.Left
     distLbl.Parent = main
-    aimbotInfoGui = sg
-    aimbotInfoName = nameLbl
-    aimbotInfoDist = distLbl
-    aimbotConn = RunService.RenderStepped:Connect(function()
-        if not aimbotEnabled then return end
+    R.aimbotInfoGui = sg
+    R.aimbotInfoName = nameLbl
+    R.aimbotInfoDist = distLbl
+    R.aimbotConn = RunService.RenderStepped:Connect(function()
+        if not R.aimbotEnabled then return end
+        local hasGun = R.toolCache.hasGun or hasTool(LocalPlayer, "gun")
+        local hasKnife = R.toolCache.hasKnife or hasTool(LocalPlayer, "knife")
+        if not hasGun and not hasKnife then
+            if not R.toolRefreshActive then
+                startToolAutoRefresh()
+            end
+            return
+        end
         local myChar = LocalPlayer.Character
         local myHrp = myChar and myChar:FindFirstChild("HumanoidRootPart")
         if not myHrp then return end
         local target = getNearestAimbotTarget()
-        aimbotCurrentTarget = target
+        R.aimbotCurrentTarget = target
         if not target or not target.Character then return end
         local tHrp = target.Character:FindFirstChild("HumanoidRootPart")
         if not tHrp then return end
@@ -1435,134 +1805,38 @@ local function startAimbotLoop()
             Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, predictedPos)
         end
     end)
-    aimbotInfoConn = RunService.Heartbeat:Connect(function()
+    R.aimbotInfoConn = RunService.Heartbeat:Connect(function()
         local myHrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if not myHrp or not aimbotInfoName then return end
-        local target = aimbotCurrentTarget or getNearestAimbotTarget()
+        if not myHrp or not R.aimbotInfoName then return end
+        local target = R.aimbotCurrentTarget or getNearestAimbotTarget()
         if not target or not target.Character then
-            aimbotInfoName.Text = "Target: -"
-            aimbotInfoDist.Text = "Dist: 0"
+            R.aimbotInfoName.Text = "Target: -"
+            R.aimbotInfoDist.Text = "Dist: 0"
             return
         end
         local tHrp = target.Character:FindFirstChild("HumanoidRootPart")
         if not tHrp then return end
         local dist = (tHrp.Position - myHrp.Position).Magnitude
-        aimbotInfoName.Text = "Target: ".. shortenName(target.Name, 10)
-        aimbotInfoDist.Text = string.format("Dist: %.0f", dist)
+        R.aimbotInfoName.Text = "Target: ".. shortenName(target.Name, 10)
+        R.aimbotInfoDist.Text = string.format("Dist: %.0f", dist)
     end)
 end
 local function stopAimbotLoop()
-    if aimbotConn then
-        aimbotConn:Disconnect()
-        aimbotConn = nil
+    if R.aimbotConn then
+        R.aimbotConn:Disconnect()
+        R.aimbotConn = nil
     end
-    if aimbotInfoConn then
-        aimbotInfoConn:Disconnect()
-        aimbotInfoConn = nil
+    if R.aimbotInfoConn then
+        R.aimbotInfoConn:Disconnect()
+        R.aimbotInfoConn = nil
     end
-    aimbotCurrentTarget = nil
-    lastPredictions = {}
-end
-local function makeTrollTiduran()
-    local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-    if hum then
-        pcall(function()
-            hum:ChangeState(Enum.HumanoidStateType.FallingDown)
-            task.wait(0.05)
-            hum:ChangeState(Enum.HumanoidStateType.Physics)
-            hum.PlatformStand = false
-            hum.AutoRotate = false
-        end)
-    end
-end
-local function ensureTrollTiduran()
-    local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-    if hum and hum:GetState() ~= Enum.HumanoidStateType.Physics then
-        pcall(function()
-            hum:ChangeState(Enum.HumanoidStateType.FallingDown)
-            task.wait(0.05)
-            hum:ChangeState(Enum.HumanoidStateType.Physics)
-        end)
-    end
-end
-local function startTrollMurderLoop()
-    if trollMurderConn then trollMurderConn:Disconnect() end
-    makeTrollTiduran()
-    trollMurderConn = RunService.Heartbeat:Connect(function()
-        if not trollMurderEnabled then return end
-        local murderPlr = getMurderPlayer()
-        if not murderPlr or not isAlive(murderPlr) then return end
-        local myChar = LocalPlayer.Character
-        local myHrp = myChar and myChar:FindFirstChild("HumanoidRootPart")
-        local hum = myChar and myChar:FindFirstChildOfClass("Humanoid")
-        if not myHrp then return end
-        if hum and hum:GetState() ~= Enum.HumanoidStateType.Physics then ensureTrollTiduran() end
-        local tHrp = murderPlr.Character and murderPlr.Character:FindFirstChild("HumanoidRootPart")
-        if not tHrp then return end
-        local time = tick()
-        local upDown = math.sin(time * 18) * 1.2
-        local targetPos = tHrp.Position + Vector3.new(0, upDown, 0)
-        myHrp.AssemblyLinearVelocity = Vector3.zero
-        myHrp.AssemblyAngularVelocity = Vector3.zero
-        myHrp.CFrame = CFrame.new(targetPos) * CFrame.Angles(math.rad(90), 0, 0) * CFrame.Angles(0, 0, time * 35)
-    end)
-end
-local function stopTrollMurderLoop()
-    if trollMurderConn then
-        trollMurderConn:Disconnect()
-        trollMurderConn = nil
-    end
-    local char = LocalPlayer.Character
-    local hum = char and char:FindFirstChildOfClass("Humanoid")
-    if hum then
-        hum.PlatformStand = false
-        hum.AutoRotate = true
-        hum:ChangeState(Enum.HumanoidStateType.GettingUp)
-        task.wait(0.05)
-        hum:ChangeState(Enum.HumanoidStateType.Running)
-    end
-end
-local function startTrollSheriffLoop()
-    if trollSheriffConn then trollSheriffConn:Disconnect() end
-    makeTrollTiduran()
-    trollSheriffConn = RunService.Heartbeat:Connect(function()
-        if not trollSheriffEnabled then return end
-        local sheriffPlr = getSheriffPlayer()
-        if not sheriffPlr or not isAlive(sheriffPlr) then return end
-        local myChar = LocalPlayer.Character
-        local myHrp = myChar and myChar:FindFirstChild("HumanoidRootPart")
-        local hum = myChar and myChar:FindFirstChildOfClass("Humanoid")
-        if not myHrp then return end
-        if hum and hum:GetState() ~= Enum.HumanoidStateType.Physics then ensureTrollTiduran() end
-        local tHrp = sheriffPlr.Character and sheriffPlr.Character:FindFirstChild("HumanoidRootPart")
-        if not tHrp then return end
-        local time = tick()
-        local upDown = math.sin(time * 18) * 1.2
-        local targetPos = tHrp.Position + Vector3.new(0, upDown, 0)
-        myHrp.AssemblyLinearVelocity = Vector3.zero
-        myHrp.AssemblyAngularVelocity = Vector3.zero
-        myHrp.CFrame = CFrame.new(targetPos) * CFrame.Angles(math.rad(90), 0, 0) * CFrame.Angles(0, 0, time * 35)
-    end)
-end
-local function stopTrollSheriffLoop()
-    if trollSheriffConn then
-        trollSheriffConn:Disconnect()
-        trollSheriffConn = nil
-    end
-    local char = LocalPlayer.Character
-    local hum = char and char:FindFirstChildOfClass("Humanoid")
-    if hum then
-        hum.PlatformStand = false
-        hum.AutoRotate = true
-        hum:ChangeState(Enum.HumanoidStateType.GettingUp)
-        task.wait(0.05)
-        hum:ChangeState(Enum.HumanoidStateType.Running)
-    end
+    R.aimbotCurrentTarget = nil
+    R.lastPredictions = {}
 end
 local function startMapHRPButton()
-    if mapHRGui then
-        mapHRGui:Destroy()
-        mapHRGui = nil
+    if R.mapHRGui then
+        R.mapHRGui:Destroy()
+        R.mapHRGui = nil
     end
     startSaveCFrame()
     local sg = Instance.new("ScreenGui")
@@ -1573,27 +1847,27 @@ local function startMapHRPButton()
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(0,130,0,32)
     btn.Position = UDim2.new(0.5,-65,0.75,0)
-    btn.Text = "TP TO GUN"
+    btn.Text = "COLLECT GUN"
     btn.BackgroundColor3 = Color3.fromRGB(20,20,20)
-    btn.BackgroundTransparency = 0.25
+    btn.BackgroundTransparency = 0.65
     btn.TextColor3 = Color3.fromRGB(255,255,255)
     btn.TextScaled = true
     btn.Font = Enum.Font.GothamBold
     btn.Parent = sg
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0,10)
     makeDraggable(btn)
-    mapHRGui = sg
+    R.mapHRGui = sg
     btn.MouseButton1Click:Connect(function()
-        if mapHRTPing then return end
+        if R.mapHRTPing then return end
         if not isPlayerTeleportedByServer() then return end
-        mapHRTPing = true
+        R.mapHRTPing = true
         local myChar = LocalPlayer.Character
         local myHrp2 = myChar and myChar:FindFirstChild("HumanoidRootPart")
         if not myHrp2 then
-            mapHRTPing = false
+            R.mapHRTPing = false
             return
         end
-        local before = mapHRSavedCFrame or myHrp2.CFrame
+        local before = R.mapHRSavedCFrame or myHrp2.CFrame
         local targetHRP = findHRPInMaps()
         if targetHRP and targetHRP.Parent and hrpHasParticle(targetHRP) then
             myHrp2.CFrame = CFrame.new(targetHRP.Position + Vector3.new(0,3,0))
@@ -1601,52 +1875,91 @@ local function startMapHRPButton()
             if myHrp2 and myHrp2.Parent then myHrp2.CFrame = before end
         end
         task.wait(0.1)
-        mapHRTPing = false
+        R.mapHRTPing = false
     end)
 end
 local function stopMapHRPButton()
-    if mapHRGui then
-        mapHRGui:Destroy()
-        mapHRGui = nil
+    if R.mapHRGui then
+        R.mapHRGui:Destroy()
+        R.mapHRGui = nil
     end
     stopSaveCFrameIfNeeded()
 end
+local function isMurderNearHRP(targetHRP, radius)
+    radius = radius or 3.5
+    local murderPlr = getMurderPlayer()
+    if not murderPlr then return false end
+    local mChar = murderPlr.Character
+    local mHrp = mChar and mChar:FindFirstChild("HumanoidRootPart")
+    if not mHrp or not targetHRP then return false end
+    local dist = (mHrp.Position - targetHRP.Position).Magnitude
+    return dist <= radius
+end
 local function startAutoGetGun()
-    if autoGetGunThread then pcall(function() task.cancel(autoGetGunThread) end) autoGetGunThread = nil end
+    if R.autoGetGunThread then pcall(function() task.cancel(R.autoGetGunThread) end) R.autoGetGunThread = nil end
+    if R.autoGetGunLoop then pcall(function() task.cancel(R.autoGetGunLoop) end) R.autoGetGunLoop = nil end
+    if R.autoGetGunSheriffCheck then pcall(function() task.cancel(R.autoGetGunSheriffCheck) end) R.autoGetGunSheriffCheck = nil end
+    if R.autoGetGunMaplistCheck then pcall(function() task.cancel(R.autoGetGunMaplistCheck) end) R.autoGetGunMaplistCheck = nil end
+    if R.autoGetGunRefreshConn then pcall(function() R.autoGetGunRefreshConn:Disconnect() end) R.autoGetGunRefreshConn = nil end
     startSaveCFrame()
-    autoGetGunThread = task.spawn(function()
-        while autoGetGunEnabled do
-            if hasGunInBackpack() then
-                task.wait(0.8)
+    R.autoGetGunMaplistCheck = task.spawn(function()
+        while R.autoGetGunEnabled do
+            local hasMap = hasMaplist()
+            if not hasMap then
+                if R.autoGetGunThread then pcall(function() task.cancel(R.autoGetGunThread) end) R.autoGetGunThread = nil end
+                task.wait(1)
             else
-                local myChar = LocalPlayer.Character
-                local myHrp = myChar and myChar:FindFirstChild("HumanoidRootPart")
-                if myHrp then
-                    local targetHRP = findHRPInMaps()
-                    if targetHRP and targetHRP.Parent and hrpHasParticle(targetHRP) then
-                        if not mapHRTPing then
-                            mapHRTPing = true
-                            local before = mapHRSavedCFrame or myHrp.CFrame
-                            myHrp.CFrame = CFrame.new(targetHRP.Position + Vector3.new(0,3,0))
-                            task.wait(0.2)
-                            if myHrp and myHrp.Parent then myHrp.CFrame = before end
-                            task.wait(0.1)
-                            mapHRTPing = false
-                            task.wait(1.5)
+                if not R.autoGetGunThread then
+                    R.autoGetGunThread = task.spawn(function()
+                        while R.autoGetGunEnabled do
+                            local hasMap2 = hasMaplist()
+                            if not hasMap2 then break end
+                            if hasGunInBackpack() then
+                                task.wait(0.8)
+                            else
+                                local myChar = LocalPlayer.Character
+                                local myHrp = myChar and myChar:FindFirstChild("HumanoidRootPart")
+                                if myHrp then
+                                    local targetHRP = findHRPInMaps()
+                                    if targetHRP and targetHRP.Parent and hrpHasParticle(targetHRP) then
+                                        if isMurderNearHRP(targetHRP, 3.5) then
+                                            task.wait(0.5)
+                                        else
+                                            if not R.mapHRTPing then
+                                                R.mapHRTPing = true
+                                                local before = R.mapHRSavedCFrame or myHrp.CFrame
+                                                myHrp.CFrame = CFrame.new(targetHRP.Position + Vector3.new(0,3,0))
+                                                task.wait(0.2)
+                                                if myHrp and myHrp.Parent then
+                                                    myHrp.CFrame = before
+                                                end
+                                                task.wait(0.1)
+                                                R.mapHRTPing = false
+                                                task.wait(1.5)
+                                            end
+                                        end
+                                    end
+                                end
+                                task.wait(0.5)
+                            end
                         end
-                    end
+                    end)
                 end
-                task.wait(0.5)
+                task.wait(1)
             end
         end
     end)
 end
 local function stopAutoGetGun()
-    autoGetGunEnabled = false
-    if autoGetGunThread then
-        pcall(function() task.cancel(autoGetGunThread) end)
-        autoGetGunThread = nil
+    R.autoGetGunEnabled = false
+    if R.autoGetGunThread then
+        pcall(function() task.cancel(R.autoGetGunThread) end)
+        R.autoGetGunThread = nil
     end
+    if R.autoGetGunLoop then pcall(function() task.cancel(R.autoGetGunLoop) end) R.autoGetGunLoop = nil end
+    if R.autoGetGunSheriffCheck then pcall(function() task.cancel(R.autoGetGunSheriffCheck) end) R.autoGetGunSheriffCheck = nil end
+    if R.autoGetGunMaplistCheck then pcall(function() task.cancel(R.autoGetGunMaplistCheck) end) R.autoGetGunMaplistCheck = nil end
+    if R.autoGetGunRefreshConn then pcall(function() R.autoGetGunRefreshConn:Disconnect() end) R.autoGetGunRefreshConn = nil end
     stopSaveCFrameIfNeeded()
 end
 local function setupAutoGetGunDeathLogic()
@@ -1655,10 +1968,10 @@ local function setupAutoGetGunDeathLogic()
         if not hum then return end
         hum.Died:Connect(function()
             if isAnyPlayerHasTool() then
-                if autoGetGunEnabled then
-                    autoGetGunDisabledByDeath = true
-                    autoGetGunEnabled = false
-                    if autoGetGunThread then pcall(function() task.cancel(autoGetGunThread) end) autoGetGunThread = nil end
+                if R.autoGetGunEnabled then
+                    R.autoGetGunDisabledByDeath = true
+                    R.autoGetGunEnabled = false
+                    if R.autoGetGunThread then pcall(function() task.cancel(R.autoGetGunThread) end) R.autoGetGunThread = nil end
                     stopSaveCFrameIfNeeded()
                 end
             end
@@ -1668,18 +1981,18 @@ local function setupAutoGetGunDeathLogic()
     LocalPlayer.CharacterAdded:Connect(function(char)
         bindChar(char)
         task.wait(1)
-        if autoGetGunDisabledByDeath and isAllPlayersNoTool() then
-            autoGetGunDisabledByDeath = false
-            autoGetGunEnabled = true
+        if R.autoGetGunDisabledByDeath and isAllPlayersNoTool() then
+            R.autoGetGunDisabledByDeath = false
+            R.autoGetGunEnabled = true
             startAutoGetGun()
         end
     end)
     task.spawn(function()
         while true do
             task.wait(1)
-            if autoGetGunDisabledByDeath and isAllPlayersNoTool() then
-                autoGetGunDisabledByDeath = false
-                autoGetGunEnabled = true
+            if R.autoGetGunDisabledByDeath and isAllPlayersNoTool() then
+                R.autoGetGunDisabledByDeath = false
+                R.autoGetGunEnabled = true
                 startAutoGetGun()
             end
         end
@@ -1691,7 +2004,7 @@ pcall(function()
 end)
 local infoParaFrame
 pcall(function()
-    infoParaFrame = infoRightGroup:CreateParagraph({title = "information", desc = "fps: 0\nplayer in server: 0\nTime: 00:00:00"})
+    infoParaFrame = infoRightGroup:CreateParagraph({title = "information", desc = "R.fps: 0\nplayer in server: 0\nTime: 00:00:00"})
 end)
 local infoDescLabel = nil
 task.wait(0.2)
@@ -1707,62 +2020,233 @@ pcall(function()
 end)
 task.spawn(function()
     while true do
-        local elapsed = math.floor(tick() - startTime)
+        local elapsed = math.floor(tick() - R.startTime)
         local hh = math.floor(elapsed / 3600)
         local mm = math.floor((elapsed % 3600) / 60)
         local ss = elapsed % 60
         local timeStr = string.format("%02d:%02d:%02d", hh, mm, ss)
         local plyr = #Players:GetPlayers()
-        local newDesc = "fps: ".. tostring(fps).. "\nplayer in server: ".. tostring(plyr).. "\nTime: ".. timeStr
+        local newDesc = "R.fps: ".. tostring(R.fps).. "\nplayer in server: ".. tostring(plyr).. "\nTime: ".. timeStr
         if infoDescLabel and infoDescLabel.Parent then
             infoDescLabel.Text = newDesc
         end
         task.wait(0.3)
     end
 end)
-espGroup:CreateToggle("ESP Murder", false, function(s) murderEnabled = s end)
-espGroup:CreateToggle("ESP Sheriff", false, function(s) sheriffEnabled = s end)
-espGroup:CreateToggle("ESP Innocent", false, function(s) innocentEnabled = s end)
+espGroup:CreateToggle("ESP Murder", false, function(s) R.murderEnabled = s end)
+espGroup:CreateToggle("ESP Sheriff", false, function(s) R.sheriffEnabled = s end)
+espGroup:CreateToggle("ESP Innocent", false, function(s) R.innocentEnabled = s end)
 espGroup:CreateToggle("ESP Gun", false, function(s)
-    espGunEnabled = s
+    R.espGunEnabled = s
     if s then startESPGun() else stopESPGun() end
 end)
-killGroup:CreateToggle("Kill All", false, function(state)
-    if state then
-        if farmEnabled then
-            library:Addnotification({title = "Warning", desc = "Farm Coin is ON! Turn off Farm first", duration = 5})
-            return
+
+local function freezePlayer(plr)
+    if plr == LocalPlayer then return end
+    local char = plr.Character
+    if not char then return end
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hum or not hrp then return end
+    pcall(function()
+        hum.PlatformStand = true
+        hum.AutoRotate = false
+        hum.WalkSpeed = 0
+        hum.JumpPower = 0
+        hrp.Anchored = true
+        for _, anim in ipairs(hum:GetPlayingAnimationTracks()) do anim:Stop() end
+    end)
+    R.killAllOPFrozen[plr] = true
+end
+local function unfreezePlayer(plr)
+    if plr == LocalPlayer then return end
+    local char = plr.Character
+    if not char then return end
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if hum then
+        pcall(function()
+            hum.PlatformStand = false
+            hum.AutoRotate = true
+            hum.WalkSpeed = 16
+            hum.JumpPower = 50
+            if hrp then hrp.Anchored = false end
+        end)
+    end
+    R.killAllOPFrozen[plr] = nil
+end
+local function bringPlayerFront(plr, index)
+    if plr == LocalPlayer then return end
+    local myChar = LocalPlayer.Character
+    local myHrp = myChar and myChar:FindFirstChild("HumanoidRootPart")
+    if not myHrp then return end
+    local char = plr.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    local stackedPos = myHrp.CFrame * CFrame.new(0,0,-3)
+    hrp.CFrame = stackedPos
+    hrp.AssemblyLinearVelocity = Vector3.zero
+    hrp.AssemblyAngularVelocity = Vector3.zero
+    hrp.Anchored = true
+end
+local function equipKnifeViaKeybind1()
+    local backpack = LocalPlayer:FindFirstChild("Backpack")
+    if not backpack then return nil end
+    local knifeTool = nil
+    for _, t in ipairs(backpack:GetChildren()) do
+        if t:IsA("Tool") and string.find(string.lower(t.Name), "knife") then knifeTool = t break end
+    end
+    if not knifeTool then
+        local char = LocalPlayer.Character
+        if char then
+            for _, t in ipairs(char:GetChildren()) do
+                if t:IsA("Tool") and string.find(string.lower(t.Name), "knife") then knifeTool = t break end
+            end
         end
-        killAuraEnabled = true
-        startTP()
+    end
+    if knifeTool then
+        pcall(function()
+            LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):EquipTool(knifeTool)
+            knifeTool.Parent = LocalPlayer.Character
+        end)
+        return knifeTool
+    end
+    return nil
+end
+local function startKillAllOP()
+    R.killAllOPEnabled = true
+    R.killAllOPFrozen = {}
+    if R.killAllOPAutoRefreshConn then pcall(function() R.killAllOPAutoRefreshConn:Disconnect() end) R.killAllOPAutoRefreshConn = nil end
+    if R.killAllOPMurderCheck then task.cancel(R.killAllOPMurderCheck) R.killAllOPMurderCheck = nil end
+    if R.killAllOPBringConn then pcall(function() R.killAllOPBringConn:Disconnect() end) R.killAllOPBringConn = nil end
+    if R.killAllOPConn then task.cancel(R.killAllOPConn) R.killAllOPConn = nil end
+    R.killAllOPMurderCheck = task.spawn(function()
+        while R.killAllOPEnabled do
+            local hasKnife = hasTool(LocalPlayer, "knife")
+            if hasKnife then
+                if not R.killAllOPBringConn then
+                    R.killAllOPBringConn = RunService.Heartbeat:Connect(function()
+                        if not R.killAllOPEnabled then return end
+                        if not hasTool(LocalPlayer, "knife") then return end
+                        local myChar = LocalPlayer.Character
+                        local myHrp = myChar and myChar:FindFirstChild("HumanoidRootPart")
+                        if not myHrp then return end
+                        for _, plr in ipairs(Players:GetPlayers()) do
+                            if plr ~= LocalPlayer then
+                                local char = plr.Character
+                                local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                                if hrp and char then
+                                    local dist = (hrp.Position - myHrp.Position).Magnitude
+                                    if dist <= 200 then
+                                        if isAlive(plr) then
+                                            freezePlayer(plr)
+                                            bringPlayerFront(plr, 0)
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end)
+                end
+                if not R.killAllOPConn then
+                    R.killAllOPConn = task.spawn(function()
+                        while R.killAllOPEnabled and hasTool(LocalPlayer, "knife") do
+                            local knife = equipKnifeViaKeybind1()
+                            if knife then
+                                for i = 1, 5 do
+                                    if not R.killAllOPEnabled then break end
+                                    if not hasTool(LocalPlayer, "knife") then break end
+                                    pcall(function()
+                                        knife:Activate()
+                                        local vim = game:GetService("VirtualInputManager")
+                                        vim:SendMouseButtonEvent(0,0,0,true,game,0)
+                                        task.wait(0.05)
+                                        vim:SendMouseButtonEvent(0,0,0,false,game,0)
+                                    end)
+                                    task.wait(0.1)
+                                end
+                            end
+                            task.wait(0.3)
+                        end
+                    end)
+                end
+            else
+                if R.killAllOPBringConn then R.killAllOPBringConn:Disconnect() R.killAllOPBringConn = nil end
+                if R.killAllOPConn then task.cancel(R.killAllOPConn) R.killAllOPConn = nil end
+            end
+            task.wait(0.25)
+        end
+    end)
+end
+local function stopKillAllOP()
+    R.killAllOPEnabled = false
+    if R.killAllOPBringConn then R.killAllOPBringConn:Disconnect() R.killAllOPBringConn = nil end
+    if R.killAllOPConn then task.cancel(R.killAllOPConn) R.killAllOPConn = nil end
+    if R.killAllOPMurderCheck then task.cancel(R.killAllOPMurderCheck) R.killAllOPMurderCheck = nil end
+    if R.killAllOPAutoRefreshConn then pcall(function() R.killAllOPAutoRefreshConn:Disconnect() end) R.killAllOPAutoRefreshConn = nil end
+    for plr, _ in pairs(R.killAllOPFrozen) do unfreezePlayer(plr) end
+    R.killAllOPFrozen = {}
+end
+
+killGroup:CreateToggle("Kill All", false, function(state)
+    R.killAuraEnabled = state
+    if state then
+        if R.killAllOPEnabled then
+            stopTP()
+            startKillAllOP()
+        else
+            stopKillAllOP()
+            startTP()
+        end
     else
         stopTP()
+        if not R.killAllOPEnabled then
+            stopKillAllOP()
+        end
+    end
+end)
+killGroup:CreateToggle("mode OP", false, function(state)
+    R.killAllOPEnabled = state
+    if state then
+        if R.killAuraEnabled then
+            stopTP()
+            startKillAllOP()
+            pcall(function() library:Addnotification({title = "mode OP", desc = "Switched Normal Mode to OP Mode", duration = 3}) end)
+        else
+            startKillAllOP()
+            pcall(function() library:Addnotification({title = "mode OP", desc = "OP Mode Ready - Enable Kill All to start", duration = 3}) end)
+        end
+    else
+        stopKillAllOP()
+        if R.killAuraEnabled then
+            startTP()
+            pcall(function() library:Addnotification({title = "Kill All", desc = "Switched to Normal Mode", duration = 3}) end)
+        else
+            pcall(function() library:Addnotification({title = "mode OP", desc = "OP Mode OFF", duration = 2}) end)
+        end
     end
 end)
 coinGroup:CreateToggle("Farm Coin", false, function(state)
     if state then
-        if killAuraEnabled then
-            farmEnabled = false
-            stopFarm()
-            library:Addnotification({title = "Warning", desc = "Turn off Kill Aura before farming", duration = 5})
-            return
-        end
-        farmEnabled = true
-        farmPausedByMurder = false
+        R.farmEnabled = true
+        R.farmPausedByMurder = false
         startFarm()
     else
         stopFarm()
     end
 end)
-coinGroup:CreateSlider("Tween Speed", 1, 10, 3, function(v) farmSpeed = v end)
+coinGroup:CreateSlider("Tween Speed", 1, 10, 3, function(v) R.farmSpeed = v end)
 sheriffCounterGroup:CreateToggle("Get Gun", false, function(state)
-    mapHREnabled = state
-    if state then startMapHRPButton() else stopMapHRPButton() end
+    R.getGunEnabled = state
+    if state then
+        startGetGun()
+    else
+        stopGetGun()
+    end
 end)
 sheriffCounterGroup:CreateToggle("Auto Get Gun", false, function(state)
-    autoGetGunEnabled = state
+    R.autoGetGunEnabled = state
     if state then
-        autoGetGunDisabledByDeath = false
         startAutoGetGun()
     else
         stopAutoGetGun()
@@ -1770,7 +2254,7 @@ sheriffCounterGroup:CreateToggle("Auto Get Gun", false, function(state)
 end)
 sheriffCounterGroup:CreateDivider()
 sheriffCounterGroup:CreateToggle("TP Behind Murder", false, function(state)
-    loopGunEnabled = state
+    R.loopGunEnabled = state
     if state then
         checkOffsetVsAvoid()
         startLoopGun()
@@ -1779,129 +2263,156 @@ sheriffCounterGroup:CreateToggle("TP Behind Murder", false, function(state)
     end
 end)
 sheriffCounterGroup:CreateSlider("TP Behind Murder Distance", 5, 45, 35, function(v)
-    loopGunOffset = v
+    R.loopGunOffset = v
     checkOffsetVsAvoid()
 end)
 avoidGroup:CreateToggle("Avoid Murder", false, function(state)
-    avoidEnabled = state
+    R.avoidEnabled = state
     if state then startAvoid() else stopAvoid() end
     checkOffsetVsAvoid()
 end)
 avoidGroup:CreateInput("Avoid Distance", "25", function(text)
     local num = tonumber(text)
     if num then
-        avoidDistance = num
+        R.avoidDistance = num
         checkOffsetVsAvoid()
     end
 end)
 votePadGroup:CreateSlider("select votes", 1, 3, 1, function(v)
-    votePadIndex = math.clamp(math.floor(v + 0.5), 1, 3)
-    if votePadEnabled and not isAnyOtherPlayerHasWeapon() then tpToDetector(votePadIndex) end
+    R.votePadIndex = math.clamp(math.floor(v + 0.5), 1, 3)
+    if R.votePadEnabled and not isAnyOtherPlayerHasWeapon() then tpToDetector(R.votePadIndex) end
 end)
 votePadGroup:CreateToggle("Auto vote map", false, function(state)
-    votePadEnabled = state
+    R.votePadEnabled = state
     if state then startVotePad() else stopVotePad() end
 end)
-miscGroup:CreateButton("Anti Lag", function()
-    if antiLagEnabled then
-        stopAntiLagAutoRefresh()
-        library:Addnotification({title="Anti Lag", desc="Anti Lag Auto-Refresh OFF", duration=3})
-    else
-        startAntiLagAutoRefresh()
-        library:Addnotification({title="Anti Lag", desc="Anti Lag Auto-Refresh ON - you not get gun sorry but bug", duration=3})
-    end
-end)
+
 miscGroup:CreateButton("Anti Fling", function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/SCRIPTHUB-dev-god/main-scipt/refs/heads/main/byte/anti-fling.lua"))()
 end)
 miscGroup:CreateToggle("Anti Void", false, function(state)
-    antiVoidEnabled = state
+R.antiVoidEnabled = state
     if state then
-        if antiVoidConn then antiVoidConn:Disconnect() end
-        antiVoidConn = RunService.Heartbeat:Connect(function()
-            if not antiVoidEnabled then return end
+        if R.antiVoidConn then R.antiVoidConn:Disconnect() end
+        R.antiVoidLoop = nil
+        R.lastSafePos = R.lastSafePos or nil
+        R.lastSafePosString = R.lastSafePosString or nil
+        R.antiVoidConn = RunService.Heartbeat:Connect(function()
+            if not R.antiVoidEnabled then return end
             local char = LocalPlayer.Character
             local hrp = char and char:FindFirstChild("HumanoidRootPart")
             local hum = char and char:FindFirstChildOfClass("Humanoid")
             if not hrp or not hum then return end
-            if hrp.Position.Y > -50 then
-                if hum:GetState() == Enum.HumanoidStateType.Freefall or hum:GetState() == Enum.HumanoidStateType.FallingDown then
-                    if not lastSafePos or hrp.Position.Y > -10 then
-                        lastSafePos = hrp.Position + Vector3.new(0,5,0)
+            local function round2(v)
+                return math.floor(v * 100 + 0.5) / 100
+            end
+            local function isTouchingValidPart()
+                local params = RaycastParams.new()
+                params.FilterDescendantsInstances = {char}
+                params.FilterType = Enum.RaycastFilterType.Blacklist
+                local ray = Workspace:Raycast(hrp.Position, Vector3.new(0,-5,0), params)
+                if ray and ray.Instance and ray.Instance.Anchored and ray.Instance.CanCollide and ray.Instance:IsDescendantOf(Workspace) and not ray.Instance:IsDescendantOf(char) then
+                    if ray.Instance.Parent and ray.Instance.Parent:FindFirstChildOfClass("Humanoid") then
+                        return false
                     end
-                else
-                    lastSafePos = hrp.Position
+                    return true, ray.Instance
                 end
+                local touching = false
+                pcall(function()
+                    for _, part in ipairs(hrp:GetTouchingParts()) do
+                        if part.Anchored and part.CanCollide and part:IsDescendantOf(Workspace) then
+                            if not part:IsDescendantOf(char) then
+                                touching = true
+                                break
+                            end
+                        end
+                    end
+                end)
+                return touching
+            end
+            local touching, part = isTouchingValidPart()
+            if touching then
+                local pos = hrp.Position
+                local rounded = Vector3.new(round2(pos.X), round2(pos.Y), round2(pos.Z))
+                local posString = string.format("%.2f, %.2f, %.2f", rounded.X, rounded.Y, rounded.Z)
+                if R.lastSafePosString ~= posString then
+                    R.lastSafePos = rounded
+                    R.lastSafePosString = posString
+                end
+            else
+                -- auto save mati kalo ga nyentuh part anchor on cancollide on
             end
             if hrp.Position.Y < -200 then
-                if lastSafePos then
-                    hrp.CFrame = CFrame.new(lastSafePos + Vector3.new(0,5,0))
+                if R.lastSafePos then
+                    hrp.CFrame = CFrame.new(R.lastSafePos + Vector3.new(0,5,0))
+                    hrp.AssemblyLinearVelocity = Vector3.zero
                 else
                     hrp.CFrame = CFrame.new(0,50,0)
+                    hrp.AssemblyLinearVelocity = Vector3.zero
                 end
-                hrp.AssemblyLinearVelocity = Vector3.zero
             end
         end)
     else
-        if antiVoidConn then
-            antiVoidConn:Disconnect()
-            antiVoidConn = nil
+        if R.antiVoidConn then
+            R.antiVoidConn:Disconnect()
+            R.antiVoidConn = nil
         end
+        R.lastSafePosString = nil
     end
 end)
 movementGroup:CreateToggle("Enable WalkSpeed", false, function(s)
-    walkSpeedEnabled = s
+    R.walkSpeedEnabled = s
     if s then startMovement() else stopMovement() end
 end)
 movementGroup:CreateInput("Value", "16", function(t)
     local n = tonumber(t)
     if n then
-        walkSpeedValue = math.clamp(n, 1, 500)
-        if walkSpeedEnabled then startMovement() end
+        R.walkSpeedValue = math.clamp(n, 1, 500)
+        if R.walkSpeedEnabled then startMovement() end
     end
 end)
 movementGroup:CreateToggle("Enable JumpPower", false, function(s)
-    jumpEnabled = s
+    R.jumpEnabled = s
     if s then startMovement() else stopMovement() end
 end)
 movementGroup:CreateInput("Value", "50", function(t)
     local n = tonumber(t)
     if n then
-        jumpValue = math.clamp(n, 1, 500)
-        if jumpEnabled then startMovement() end
+        R.jumpValue = math.clamp(n, 1, 500)
+        if R.jumpEnabled then startMovement() end
     end
 end)
 utilityGroup:CreateToggle("Noclip", false, function(s)
     if s then setNoclip(true) else setNoclip(false) end
 end)
 utilityGroup:CreateToggle("Infinite Jump", false, function(s)
-    infJumpEnabled = s
+    R.infJumpEnabled = s
     if s then
-        if infJumpConn then infJumpConn:Disconnect() end
-        infJumpConn = UserInputService.JumpRequest:Connect(function()
-            if infJumpEnabled then
+        if R.infJumpConn then R.infJumpConn:Disconnect() end
+        R.infJumpConn = UserInputService.JumpRequest:Connect(function()
+            if R.infJumpEnabled then
                 local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
                 if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
             end
         end)
     else
-        if infJumpConn then
-            infJumpConn:Disconnect()
-            infJumpConn = nil
+        if R.infJumpConn then
+            R.infJumpConn:Disconnect()
+            R.infJumpConn = nil
         end
     end
 end)
 utilityGroup:CreateToggle("X-Ray", false, function(s)
-    xrayEnabled = s
+    R.xrayEnabled = s
     if s then
-        xrayOriginal = {}
-        if xrayLoop then pcall(function() task.cancel(xrayLoop) end) xrayLoop = nil end
-        xrayLoop = task.spawn(function()
-            while xrayEnabled do
+        R.xrayOriginal = {}
+        if R.xrayLoop then pcall(function() task.cancel(R.xrayLoop) end) R.xrayLoop = nil end
+        R.xrayLoop = task.spawn(function()
+            while R.xrayEnabled do
                 local batch = {}
                 for _, obj in ipairs(Workspace:GetDescendants()) do
-                    if not xrayEnabled then break end
-                    if obj:IsA("BasePart") and obj.Parent and obj ~= farmPart and obj ~= platformPart and obj ~= safePlatformPart and obj ~= loopGunPlatform then
+                    if not R.xrayEnabled then break end
+                    if obj:IsA("BasePart") and obj.Parent and obj ~= R.farmPart and obj ~= R.platformPart and obj ~= R.safePlatformPart and obj ~= R.loopGunPlatform then
                         local isChar = false
                         for _, plr in ipairs(Players:GetPlayers()) do
                             if plr.Character and obj:IsDescendantOf(plr.Character) then
@@ -1909,13 +2420,13 @@ utilityGroup:CreateToggle("X-Ray", false, function(s)
                                 break
                             end
                         end
-                        if not isChar and not xrayOriginal[obj] then
+                        if not isChar and not R.xrayOriginal[obj] then
                             if obj.Transparency < 0.75 then
                                 table.insert(batch, obj)
                                 if #batch >= 40 then
                                     for _, p in ipairs(batch) do
                                         if p and p.Parent then
-                                            xrayOriginal[p] = p.Transparency
+                                            R.xrayOriginal[p] = p.Transparency
                                             p.Transparency = 0.75
                                         end
                                     end
@@ -1928,17 +2439,17 @@ utilityGroup:CreateToggle("X-Ray", false, function(s)
                 end
                 for _, p in ipairs(batch) do
                     if p and p.Parent then
-                        xrayOriginal[p] = p.Transparency
+                        R.xrayOriginal[p] = p.Transparency
                         p.Transparency = 0.75
                     end
                 end
                 task.wait(1)
             end
         end)
-        if xrayConn then xrayConn:Disconnect() end
-        xrayConn = Workspace.DescendantAdded:Connect(function(obj)
-            if not xrayEnabled then return end
-            if obj:IsA("BasePart") and obj.Parent and obj ~= farmPart and obj ~= platformPart and obj ~= safePlatformPart and obj ~= loopGunPlatform then
+        if R.xrayConn then R.xrayConn:Disconnect() end
+        R.xrayConn = Workspace.DescendantAdded:Connect(function(obj)
+            if not R.xrayEnabled then return end
+            if obj:IsA("BasePart") and obj.Parent and obj ~= R.farmPart and obj ~= R.platformPart and obj ~= R.safePlatformPart and obj ~= R.loopGunPlatform then
                 task.wait(0.05)
                 local isChar = false
                 for _, plr in ipairs(Players:GetPlayers()) do
@@ -1947,33 +2458,33 @@ utilityGroup:CreateToggle("X-Ray", false, function(s)
                         break
                     end
                 end
-                if not isChar and not xrayOriginal[obj] then
-                    xrayOriginal[obj] = obj.Transparency
+                if not isChar and not R.xrayOriginal[obj] then
+                    R.xrayOriginal[obj] = obj.Transparency
                     obj.Transparency = 0.75
                 end
             end
         end)
     else
-        if xrayConn then
-            xrayConn:Disconnect()
-            xrayConn = nil
+        if R.xrayConn then
+            R.xrayConn:Disconnect()
+            R.xrayConn = nil
         end
-        if xrayLoop then
-            pcall(function() task.cancel(xrayLoop) end)
-            xrayLoop = nil
+        if R.xrayLoop then
+            pcall(function() task.cancel(R.xrayLoop) end)
+            R.xrayLoop = nil
         end
-        for part, old in pairs(xrayOriginal) do
+        for part, old in pairs(R.xrayOriginal) do
             if part and part.Parent then
                 pcall(function() part.Transparency = old end)
             end
         end
-        xrayOriginal = {}
+        R.xrayOriginal = {}
     end
 end)
 utilityGroup:CreateToggle("Fullbright", false, function(s)
-    fullbrightEnabled = s
+    R.fullbrightEnabled = s
     if s then
-        oldLighting = {
+        R.oldLighting = {
             Brightness = Lighting.Brightness,
             Ambient = Lighting.Ambient,
             OutdoorAmbient = Lighting.OutdoorAmbient,
@@ -1989,24 +2500,24 @@ utilityGroup:CreateToggle("Fullbright", false, function(s)
         Lighting.FogEnd = 100000
         Lighting.GlobalShadows = false
         Lighting.ExposureCompensation = 0.2
-        if fullbrightConn then fullbrightConn:Disconnect() end
-        fullbrightConn = RunService.RenderStepped:Connect(function()
-            if not fullbrightEnabled then return end
+        if R.fullbrightConn then R.fullbrightConn:Disconnect() end
+        R.fullbrightConn = RunService.RenderStepped:Connect(function()
+            if not R.fullbrightEnabled then return end
             Lighting.Brightness = 2
             Lighting.GlobalShadows = false
         end)
     else
-        if fullbrightConn then
-            fullbrightConn:Disconnect()
-            fullbrightConn = nil
+        if R.fullbrightConn then
+            R.fullbrightConn:Disconnect()
+            R.fullbrightConn = nil
         end
-        if oldLighting.Brightness then Lighting.Brightness = oldLighting.Brightness end
-        if oldLighting.Ambient then Lighting.Ambient = oldLighting.Ambient end
-        if oldLighting.OutdoorAmbient then Lighting.OutdoorAmbient = oldLighting.OutdoorAmbient end
-        if oldLighting.ClockTime then Lighting.ClockTime = oldLighting.ClockTime end
-        if oldLighting.FogEnd then Lighting.FogEnd = oldLighting.FogEnd end
-        if oldLighting.GlobalShadows ~= nil then Lighting.GlobalShadows = oldLighting.GlobalShadows end
-        if oldLighting.ExposureCompensation then Lighting.ExposureCompensation = oldLighting.ExposureCompensation end
+        if R.oldLighting.Brightness then Lighting.Brightness = R.oldLighting.Brightness end
+        if R.oldLighting.Ambient then Lighting.Ambient = R.oldLighting.Ambient end
+        if R.oldLighting.OutdoorAmbient then Lighting.OutdoorAmbient = R.oldLighting.OutdoorAmbient end
+        if R.oldLighting.ClockTime then Lighting.ClockTime = R.oldLighting.ClockTime end
+        if R.oldLighting.FogEnd then Lighting.FogEnd = R.oldLighting.FogEnd end
+        if R.oldLighting.GlobalShadows ~= nil then Lighting.GlobalShadows = R.oldLighting.GlobalShadows end
+        if R.oldLighting.ExposureCompensation then Lighting.ExposureCompensation = R.oldLighting.ExposureCompensation end
     end
 end)
 teleportGroup:CreateButton("TP to Safe Platform", function()
@@ -2019,10 +2530,55 @@ teleportGroup:CreateButton("TP to Safe Platform", function()
     part.Transparency = 0.3
     part.Material = Enum.Material.ForceField
     part.Parent = Workspace
-    safePlatformPart = part
-    task.wait(0.1)
-    local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if hrp and part then hrp.CFrame = CFrame.new(part.Position + Vector3.new(0,2,0)) end
+    local myChar = LocalPlayer.Character
+    local myHrp = myChar and myChar:FindFirstChild("HumanoidRootPart")
+    if myHrp then
+        myHrp.CFrame = CFrame.new(part.Position + Vector3.new(0,3,0))
+    end
+end)
+teleportGroup:CreateButton("TP Map", function()
+    local LogService = game:GetService("LogService")
+    local logs = {}
+    pcall(function()
+        logs = LogService:GetLogHistory()
+    end)
+    local latestXYZ = nil
+    for i = #logs, 1, -1 do
+        local entry = logs[i]
+        local msg = entry.message or tostring(entry)
+        local x,y,z = string.match(msg, "([%-]?%d+%.?%d*)[, ]+%s*([%-]?%d+%.?%d*)[, ]+%s*([%-]?%d+%.?%d*)")
+        if x and y and z then
+            local nx, ny, nz = tonumber(x), tonumber(y), tonumber(z)
+            if nx and ny and nz then
+                if math.abs(nx) < 10000 and math.abs(ny) < 10000 and math.abs(nz) < 10000 then
+                    latestXYZ = Vector3.new(nx, ny, nz)
+                    break
+                end
+            end
+        end
+        local vx, vy, vz = string.match(msg, "Vector3%.new%(%s*([%-]?%d+%.?%d*)%s*,%s*([%-]?%d+%.?%d*)%s*,%s*([%-]?%d+%.?%d*)%s*%)")
+        if vx and vy and vz then
+            latestXYZ = Vector3.new(tonumber(vx), tonumber(vy), tonumber(vz))
+            break
+        end
+    end
+    if latestXYZ then
+        local myChar = LocalPlayer.Character
+        local myHrp = myChar and myChar:FindFirstChild("HumanoidRootPart")
+        if myHrp then
+            myHrp.CFrame = CFrame.new(latestXYZ)
+            pcall(function() library:Addnotification({title = "TP Map", desc = "TP Map working", duration = 3}) end)
+        end
+    else
+        pcall(function() library:Addnotification({title = "TP Map", desc = "No coordinates found in console!", duration = 3}) end)
+        local lastMsg = ""
+        pcall(function()
+            local history = LogService:GetLogHistory()
+            if #history > 0 then
+                lastMsg = history[#history].message
+            end
+        end)
+    end
 end)
 teleportGroup:CreateButton("TP to Lobby", function()
     local spawn
@@ -2049,80 +2605,74 @@ teleportGroup:CreateButton("TP to Sheriff", function()
         if hrp then hrp.CFrame = s.Character.HumanoidRootPart.CFrame * CFrame.new(0,0,2) end
     end
 end)
-aimbotGroup:CreateToggle("Aimbot Murder", false, function(s) aimbotMurderEnabled = s end)
-aimbotGroup:CreateToggle("Aimbot Sheriff", false, function(s) aimbotSheriffEnabled = s end)
-aimbotGroup:CreateToggle("Aimbot Innocent", false, function(s) aimbotInnocentEnabled = s end)
+aimbotGroup:CreateToggle("Aimbot Murder", true, function(s)
+    if s then
+        if not hasTool(LocalPlayer, "gun") then
+            pcall(function() library:Addnotification({title = "Aimbot", desc = "Butuh Gun untuk Aimbot Murder!", duration = 3}) end)
+            R.aimbotMurderEnabled = false
+            return
+        end
+    end
+    R.aimbotMurderEnabled = s
+end)
+aimbotGroup:CreateToggle("Aimbot Sheriff", false, function(s)
+    if s then
+        if not hasTool(LocalPlayer, "knife") then
+            pcall(function() library:Addnotification({title = "Aimbot", desc = "Butuh Knife untuk Aimbot Sheriff!", duration = 3}) end)
+            R.aimbotSheriffEnabled = false
+            return
+        end
+    end
+    R.aimbotSheriffEnabled = s
+end)
+aimbotGroup:CreateToggle("Aimbot Innocent", false, function(s)
+    if s then
+        if not hasTool(LocalPlayer, "knife") then
+            pcall(function() library:Addnotification({title = "Aimbot", desc = "Butuh Knife untuk Aimbot Innocent!", duration = 3}) end)
+            R.aimbotInnocentEnabled = false
+            return
+        end
+    end
+    R.aimbotInnocentEnabled = s
+end)
 aimbotGroup:CreateDivider()
 aimbotGroup:CreateToggle("Enable Aimbot", false, function(s)
-    aimbotEnabled = s
+    R.aimbotEnabled = s
     if s then
         startAimbotLoop()
     else
         stopAimbotLoop()
-        if aimbotInfoGui then
-            aimbotInfoGui:Destroy()
-            aimbotInfoGui = nil
+        if R.aimbotInfoGui then
+            R.aimbotInfoGui:Destroy()
+            R.aimbotInfoGui = nil
         end
     end
 end)
-trollGroup:CreateButton("Execute Touch Fling", function()
-    if flingExecuted then return end
-    flingExecuted = true
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/SCRIPTHUB-dev-god/exploit/refs/heads/main/fling/the-touch-fling.luau",true))()
-end)
-trollGroup:CreateDivider("")
-trollGroup:CreateToggle("Fling Murder", false, function(s)
-    trollMurderEnabled = s
-    if s then
-        if trollSheriffEnabled then
-            trollSheriffEnabled = false
-            if trollSheriffConn then trollSheriffConn:Disconnect() trollSheriffConn = nil end
-        end
-        startTrollMurderLoop()
-    else
-        stopTrollMurderLoop()
-    end
-end)
-trollGroup:CreateToggle("Fling Sheriff", false, function(s)
-    trollSheriffEnabled = s
-    if s then
-        if trollMurderEnabled then
-            trollMurderEnabled = false
-            if trollMurderConn then trollMurderConn:Disconnect() trollMurderConn = nil end
-        end
-        startTrollSheriffLoop()
-    else
-        stopTrollSheriffLoop()
-    end
-end)
-uiGroup:CreateButton("Reload UI", function()
+uiGroup:CreateButton("Reload Script", function()
     pcall(function() stopTP() end)
     pcall(function() stopFarm() end)
     pcall(function() stopAvoid() end)
     pcall(function() stopLoopGun() end)
-    pcall(function() stopAntiLagAutoRefresh() end)
-    pcall(function() if movementConn then movementConn:Disconnect() end end)
+    pcall(function() if R.movementConn then R.movementConn:Disconnect() end end)
     pcall(function() setNoclip(false) end)
-    pcall(function() if infJumpConn then infJumpConn:Disconnect() end end)
-    pcall(function() if xrayConn then xrayConn:Disconnect() end end)
-    pcall(function() if xrayLoop then task.cancel(xrayLoop) end end)
-    pcall(function() if fullbrightConn then fullbrightConn:Disconnect() end end)
+    pcall(function() if R.infJumpConn then R.infJumpConn:Disconnect() end end)
+    pcall(function() if R.xrayConn then R.xrayConn:Disconnect() end end)
+    pcall(function() if R.xrayLoop then task.cancel(R.xrayLoop) end end)
+    pcall(function() if R.fullbrightConn then R.fullbrightConn:Disconnect() end end)
     pcall(function() stopAimbotLoop() end)
-    pcall(function() stopTrollMurderLoop() end)
-    pcall(function() stopTrollSheriffLoop() end)
     pcall(function() stopMapHRPButton() end)
     pcall(function() stopAutoGetGun() end)
     pcall(function() stopESPGun() end)
     pcall(function() stopVotePad() end)
-    for plr,_ in pairs(espData) do pcall(function() removeESP(plr) end) end
-    pcall(function() if mapHRGui then mapHRGui:Destroy() mapHRGui=nil end end)
-    pcall(function() if aimbotInfoGui then aimbotInfoGui:Destroy() aimbotInfoGui=nil end end)
-    pcall(function() if espGunBox then espGunBox:Destroy() espGunBox=nil end end)
-    pcall(function() if espGunBillboard then espGunBillboard:Destroy() espGunBillboard=nil end end)
-    pcall(function() if safePlatformPart then safePlatformPart:Destroy() safePlatformPart=nil end end)
-    pcall(function() if farmPart then farmPart:Destroy() farmPart=nil end end)
-    pcall(function() if platformPart then platformPart:Destroy() platformPart=nil end end)
-    pcall(function() if loopGunPlatform then loopGunPlatform:Destroy() loopGunPlatform=nil end end)
+    for plr,_ in pairs(R.espData) do pcall(function() removeESP(plr) end) end
+    pcall(function() if R.mapHRGui then R.mapHRGui:Destroy() R.mapHRGui=nil end end)
+    pcall(function() if R.aimbotInfoGui then R.aimbotInfoGui:Destroy() R.aimbotInfoGui=nil end end)
+    pcall(function() if R.espGunBox then R.espGunBox:Destroy() R.espGunBox=nil end end)
+    pcall(function() if R.espGunBillboard then R.espGunBillboard:Destroy() R.espGunBillboard=nil end end)
+    pcall(function() if R.safePlatformPart then R.safePlatformPart:Destroy() R.safePlatformPart=nil end end)
+    pcall(function() if R.farmPart then R.farmPart:Destroy() R.farmPart=nil end end)
+    pcall(function() if R.platformPart then R.platformPart:Destroy() R.platformPart=nil end end)
+    pcall(function() if R.loopGunPlatform then R.loopGunPlatform:Destroy() R.loopGunPlatform=nil end end)
     task.wait(0.3)
     loadstring(game:HttpGet("https://github.com/XVC-THE-CODER/Renux-Hub/releases/latest/download/loader.lua",true))()
 end)
