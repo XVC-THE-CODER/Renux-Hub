@@ -26,7 +26,6 @@ local R = {
     savedParts = {},
     farmAddConn = nil,
     farmPausedByMurder = false,
-    mapHREnabled = false,
     autoGetGunEnabled = false,
     autoGetGunThread = nil,
     loopGunEnabled = false,
@@ -81,11 +80,6 @@ local R = {
     aimbotInfoDist = nil,
     aimbotInfoConn = nil,
     aimbotCurrentTarget = nil,
-    flingExecuted = false,
-    trollMurderEnabled = false,
-    trollMurderConn = nil,
-    trollSheriffEnabled = false,
-    trollSheriffConn = nil,
     votePadEnabled = false,
     votePadIndex = 1,
     votePadLoop = nil,
@@ -189,19 +183,6 @@ end
 
 R.aimbotMurderEnabled = true
 R.aimbotEnabled = false
-
-task.spawn(function()
-    while true do
-        task.wait(1)
-        if hasTool(LocalPlayer, "gun") then
-            if not R.aimbotMurderEnabled then
-                R.aimbotMurderEnabled = true
-            end
-            if not R.aimbotEnabled then
-            end
-        end
-    end
-end)
 
 function isLocalMurder()
     local bp = LocalPlayer:FindFirstChild("Backpack")
@@ -1192,7 +1173,7 @@ local function hasSheriffInServer()
     return sheriff ~= nil
 end
 local function isMurderNearHRP(targetHRP, radius)
-    radius = radius or 7
+    radius = radius or 3
     local murderPlr = getMurderPlayer()
     if not murderPlr then return false end
     local mChar = murderPlr.Character
@@ -1230,7 +1211,7 @@ local function startAutoGetGun()
                                 if myHrp then
                                     local targetHRP = findHRPInMaps()
                                     if targetHRP and targetHRP.Parent and hrpHasParticle(targetHRP) then
-                                        if isMurderNearHRP(targetHRP, 7) then
+                                        if isMurderNearHRP(targetHRP, 3) then
                                             task.wait(0.5)
                                         else
                                             if not R.mapHRTPing then
@@ -1331,7 +1312,7 @@ local function startSaveCFrame()
     end)
 end
 local function stopSaveCFrameIfNeeded()
-    if not R.mapHREnabled and not R.autoGetGunEnabled and not R.loopGunEnabled then
+    if not R.autoGetGunEnabled and not R.loopGunEnabled then
         if R.mapHRAutoSaveConn then
             R.mapHRAutoSaveConn:Disconnect()
             R.mapHRAutoSaveConn = nil
@@ -1847,7 +1828,7 @@ local function startMapHRPButton()
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(0,130,0,32)
     btn.Position = UDim2.new(0.5,-65,0.75,0)
-    btn.Text = "COLLECT GUN"
+    btn.Text = "TP TO GUN"
     btn.BackgroundColor3 = Color3.fromRGB(20,20,20)
     btn.BackgroundTransparency = 0.65
     btn.TextColor3 = Color3.fromRGB(255,255,255)
@@ -1886,7 +1867,7 @@ local function stopMapHRPButton()
     stopSaveCFrameIfNeeded()
 end
 local function isMurderNearHRP(targetHRP, radius)
-    radius = radius or 3.5
+    radius = radius or 3
     local murderPlr = getMurderPlayer()
     if not murderPlr then return false end
     local mChar = murderPlr.Character
@@ -1922,7 +1903,7 @@ local function startAutoGetGun()
                                 if myHrp then
                                     local targetHRP = findHRPInMaps()
                                     if targetHRP and targetHRP.Parent and hrpHasParticle(targetHRP) then
-                                        if isMurderNearHRP(targetHRP, 3.5) then
+                                        if isMurderNearHRP(targetHRP, 3) then
                                             task.wait(0.5)
                                         else
                                             if not R.mapHRTPing then
@@ -2205,7 +2186,7 @@ killGroup:CreateToggle("Kill All", false, function(state)
         end
     end
 end)
-killGroup:CreateToggle("mode OP", false, function(state)
+killGroup:CreateToggle("Mode OP", false, function(state)
     R.killAllOPEnabled = state
     if state then
         if R.killAuraEnabled then
@@ -2236,14 +2217,6 @@ coinGroup:CreateToggle("Farm Coin", false, function(state)
     end
 end)
 coinGroup:CreateSlider("Tween Speed", 1, 10, 3, function(v) R.farmSpeed = v end)
-sheriffCounterGroup:CreateToggle("Get Gun", false, function(state)
-    R.getGunEnabled = state
-    if state then
-        startGetGun()
-    else
-        stopGetGun()
-    end
-end)
 sheriffCounterGroup:CreateToggle("Auto Get Gun", false, function(state)
     R.autoGetGunEnabled = state
     if state then
@@ -2340,7 +2313,6 @@ R.antiVoidEnabled = state
                     R.lastSafePosString = posString
                 end
             else
-                -- auto save mati kalo ga nyentuh part anchor on cancollide on
             end
             if hrp.Position.Y < -200 then
                 if R.lastSafePos then
@@ -2567,10 +2539,10 @@ teleportGroup:CreateButton("TP Map", function()
         local myHrp = myChar and myChar:FindFirstChild("HumanoidRootPart")
         if myHrp then
             myHrp.CFrame = CFrame.new(latestXYZ)
-            pcall(function() library:Addnotification({title = "TP Map", desc = "TP Map working", duration = 3}) end)
+            pcall(function() library:Addnotification({title = "TP Map", desc = "tp map working", duration = 3}) end)
         end
     else
-        pcall(function() library:Addnotification({title = "TP Map", desc = "No coordinates found in console!", duration = 3}) end)
+        pcall(function() library:Addnotification({title = "TP Map", desc = "tp map failed nothing place", duration = 3}) end)
         local lastMsg = ""
         pcall(function()
             local history = LogService:GetLogHistory()
@@ -2608,7 +2580,7 @@ end)
 aimbotGroup:CreateToggle("Aimbot Murder", true, function(s)
     if s then
         if not hasTool(LocalPlayer, "gun") then
-            pcall(function() library:Addnotification({title = "Aimbot", desc = "Butuh Gun untuk Aimbot Murder!", duration = 3}) end)
+            pcall(function() library:Addnotification({title = "Aimbot", desc = "Need Gun for Murder Aimbot!", duration = 3}) end)
             R.aimbotMurderEnabled = false
             return
         end
@@ -2618,7 +2590,7 @@ end)
 aimbotGroup:CreateToggle("Aimbot Sheriff", false, function(s)
     if s then
         if not hasTool(LocalPlayer, "knife") then
-            pcall(function() library:Addnotification({title = "Aimbot", desc = "Butuh Knife untuk Aimbot Sheriff!", duration = 3}) end)
+            pcall(function() library:Addnotification({title = "Aimbot", desc = "Need Knife for Sheriff Aimbot!", duration = 3}) end)
             R.aimbotSheriffEnabled = false
             return
         end
@@ -2628,7 +2600,7 @@ end)
 aimbotGroup:CreateToggle("Aimbot Innocent", false, function(s)
     if s then
         if not hasTool(LocalPlayer, "knife") then
-            pcall(function() library:Addnotification({title = "Aimbot", desc = "Butuh Knife untuk Aimbot Innocent!", duration = 3}) end)
+            pcall(function() library:Addnotification({title = "Aimbot", desc = "Need Knife for Innocent Aimbot!", duration = 3}) end)
             R.aimbotInnocentEnabled = false
             return
         end
