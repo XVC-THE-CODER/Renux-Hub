@@ -3,19 +3,19 @@ local library = GetLibrary("latest")
 
 library:CreateTheme({
     name = "Ametis",
-    MainBG = Color3.fromRGB(25, 18, 38),
-    HeaderBG = Color3.fromRGB(18, 13, 28),
-    Stroke = Color3.fromRGB(90, 50, 130),
-    ButtonBG = Color3.fromRGB(48, 32, 75),
-    SectionBG = Color3.fromRGB(35, 24, 58),
-    Accent = Color3.fromRGB(168, 85, 247),
-    IconCl = Color3.fromRGB(216, 180, 254)
+    MainBG = Color3.fromRGB(32, 32, 36),
+    HeaderBG = Color3.fromRGB(24, 24, 28),
+    Stroke = Color3.fromRGB(60, 60, 65),
+    ButtonBG = Color3.fromRGB(45, 45, 50),
+    SectionBG = Color3.fromRGB(38, 38, 42),
+    Accent = Color3.fromRGB(140, 140, 145),
+    IconCl = Color3.fromRGB(200, 200, 205)
 })
 
 local window = library:window({
     title = "Renux Hub",
     desc = "spiral difficulty chart obby",
-    transparent = 0.25,
+    transparent = 0.35,
     icon = "moon",
     theme = "Ametis",
     fileName = "RENUX-HUB_save",
@@ -24,16 +24,16 @@ local window = library:window({
 })
 
 window:AddTag({
-    title = "v1.0",
+    title = "v1.1",
     icon = "globe",
-    color = Color3.fromRGB(84, 15, 153),
+    color = Color3.fromRGB(55, 55, 60),
     getclick = false,
 })
 
 window:AddTag({
     title = "keyless",
-    icon = "key",
-    color = Color3.fromRGB(84, 15, 153),
+    icon = "key-round",
+    color = Color3.fromRGB(55, 55, 60),
     getclick = false,
 })
 
@@ -46,7 +46,8 @@ local suptab = window:AddTab("support", "info")
 suptab:Addbutton({
     title = "copy discord",
     callback = function()
-        setclipboard("https://discord.gg/mXnTVYYYsy")
+        (setclipboard or toclipboard)("https://discord.gg/mXnTVYYYsy")
+        library:Notification({title = "copy discord link", desc = "copy link discord valid", duration = 5})
     end
 })
 
@@ -95,6 +96,11 @@ getgenv().SpeedEnabled = false
 getgenv().SpeedValue = 16
 getgenv().JumpEnabled = false
 getgenv().JumpValue = 50
+getgenv().AntiKillBrickEnabled = true
+getgenv().AntiKillBrickConn = nil
+getgenv().OriginalGravity = workspace.Gravity
+getgenv().FarmGravityConn = nil
+getgenv().FarmPhysicsEnabled = false
 
 local function GetExecutorName()
     local ok, res = pcall(function()
@@ -165,7 +171,7 @@ end
 local function GetCheckpointValuesFixed()
     local folder = GetFolder()
     local sorted = GetSortedList(folder)
-    local maxNum = 241
+    local maxNum = 261
     if #sorted > 0 then
         local found = sorted[#sorted].num
         if found > maxNum then maxNum = found end
@@ -180,7 +186,7 @@ end
 local function GetRebirthValues()
     local folder = GetFolder()
     local sorted = GetSortedList(folder)
-    local maxNum = 241
+    local maxNum = 261
     if #sorted > 0 then
         local found = sorted[#sorted].num
         if found > maxNum then maxNum = found end
@@ -226,6 +232,87 @@ local function GetCurrentStageUI()
         return tonumber(txt:match("%d+")) or tonumber(txt)
     end
     return nil
+end
+
+local function GetStageFromLeaderstats()
+    local plr = game.Players.LocalPlayer
+    local ls = plr:FindFirstChild("leaderstats")
+    if not ls then
+        for _, v in ipairs(plr:GetChildren()) do
+            if v.Name:lower() == "leaderstats" then
+                ls = v
+                break
+            end
+        end
+    end
+    if ls then
+        local names = {"Stage", "stage", "Checkpoint", "checkpoint", "Level", "level", "Stat", "stat"}
+        for _, n in ipairs(names) do
+            local obj = ls:FindFirstChild(n)
+            if obj then
+                if obj:IsA("ValueBase") then
+                    return obj.Value
+                elseif obj:IsA("TextLabel") or obj:IsA("TextButton") then
+                    local num = tonumber(tostring(obj.Text):match("%d+"))
+                    if num then return num end
+                end
+            end
+        end
+        for _, v in ipairs(ls:GetChildren()) do
+            if v:IsA("IntValue") or v:IsA("NumberValue") or v:IsA("StringValue") then
+                local val = v.Value
+                if type(val) == "number" then
+                    return val
+                elseif type(val) == "string" then
+                    local num = tonumber(val:match("%d+"))
+                    if num then return num end
+                end
+            end
+        end
+    end
+    return nil
+end
+
+local function AdjustGravityByYDistance()
+    local player = game.Players.LocalPlayer
+    local char = player.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    local farmPos = nil
+    local folder = GetFolder()
+    if folder then
+        local sorted = GetSortedList(folder)
+        local cur = GetCurrentStageLeaderstats()
+        for _, d in ipairs(sorted) do
+            if d.num == cur + 1 then
+                farmPos = d.part.Position
+                break
+            end
+        end
+        if not farmPos and #sorted > 0 then
+            farmPos = sorted[1].part.Position
+        end
+    end
+    if not farmPos then return end
+    local yDist = hrp.Position.Y - farmPos.Y
+    local absY = math.abs(yDist)
+    local gravityVal = 196.2 + (absY * 0.5)
+    if gravityVal > 500 then gravityVal = 500 end
+    if gravityVal < 50 then gravityVal = 50 end
+    if yDist < 0 then
+        local cf = hrp.CFrame
+        hrp.CFrame = cf + Vector3.new(0, math.abs(yDist) * 0.1, 0)
+    else
+        workspace.Gravity = gravityVal
+    end
+end
+
+local function GetCurrentStageLeaderstats()
+    local lsStage = GetStageFromLeaderstats()
+    if lsStage then
+        return lsStage
+    end
+    return GetCurrentStageUI() or getgenv().CurrentCheckpoint or 0
 end
 
 local function FindIndexByNum(sorted, num)
@@ -277,6 +364,120 @@ local function ClickButton(btn)
     return true
 end
 
+local function ClickButtonNoCursor(btn)
+    if not btn then return false end
+    local fired = false
+    pcall(function()
+        if btn:IsA("GuiButton") then
+            for _, c in ipairs(getconnections(btn.MouseButton1Click)) do c:Fire() fired = true end
+            for _, c in ipairs(getconnections(btn.Activated)) do c:Fire() fired = true end
+            if not fired and firesignal then
+                firesignal(btn.MouseButton1Click)
+                firesignal(btn.Activated)
+                fired = true
+            end
+        end
+    end)
+    return fired
+end
+
+local function FindButtonByName(buttonName)
+    local pg = game.Players.LocalPlayer:FindFirstChild("PlayerGui")
+    if not pg then return nil end
+    local btn = pg:FindFirstChild(buttonName, true)
+    if btn and btn:IsA("GuiButton") then return btn end
+    for _, v in ipairs(pg:GetDescendants()) do
+        if v.Name:lower() == buttonName:lower() and v:IsA("GuiButton") then
+            return v
+        end
+    end
+    return nil
+end
+
+local function FindNextButton()
+    local btn = FindButtonByName("NextButton")
+    if btn then return btn end
+    local pg = game.Players.LocalPlayer:FindFirstChild("PlayerGui")
+    if not pg then return nil end
+    for _, v in ipairs(pg:GetDescendants()) do
+        if v:IsA("TextButton") then
+            local txt = v.Text:lower()
+            if txt:find("next") or txt == ">" or txt == ">>" then
+                if v.Name:lower():find("next") or true then
+                    return v
+                end
+            end
+        end
+    end
+    return nil
+end
+
+local function FindPreviousButton()
+    local btn = FindButtonByName("PreviousButton")
+    if btn then return btn end
+    local pg = game.Players.LocalPlayer:FindFirstChild("PlayerGui")
+    if not pg then return nil end
+    for _, v in ipairs(pg:GetDescendants()) do
+        if v:IsA("TextButton") then
+            local txt = v.Text:lower()
+            if txt:find("prev") or txt == "<" or txt == "<<" then
+                return v
+            end
+        end
+    end
+    return nil
+end
+
+local function FindCurrentStageLabel()
+    local pg = game.Players.LocalPlayer:FindFirstChild("PlayerGui")
+    if not pg then return nil end
+    local label = pg:FindFirstChild("CurrentStage", true)
+    if label then return label end
+    for _, v in ipairs(pg:GetDescendants()) do
+        if v.Name:lower() == "currentstage" then
+            return v
+        end
+    end
+    return nil
+end
+
+local function GetCurrentStageFromLabel()
+    local label = FindCurrentStageLabel()
+    if not label then return GetCurrentStageUI() end
+    local txt = nil
+    if label:IsA("TextLabel") or label:IsA("TextButton") or label:IsA("TextBox") then
+        txt = label.Text
+    elseif label:IsA("ValueBase") then
+        txt = tostring(label.Value)
+    else
+        local lbl = label:FindFirstChildOfClass("TextLabel")
+        if lbl then txt = lbl.Text end
+    end
+    if txt then
+        local num = tonumber(txt:match("%d+"))
+        if num then return num end
+    end
+    return GetCurrentStageUI()
+end
+
+local function ClickNextButton()
+    local btn = FindNextButton()
+    if btn then
+        return ClickButton(btn)
+    else
+        return false
+    end
+end
+
+local function ClickPreviousButton()
+    local btn = FindPreviousButton()
+    if btn then
+        return ClickButton(btn)
+    else
+        return false
+    end
+end
+
 local function HandleErrorUI()
     local pg = game.Players.LocalPlayer:FindFirstChild("PlayerGui")
     if not pg then return false end
@@ -303,7 +504,7 @@ local function HandleErrorUI()
     end
     if btn then
         task.wait(0.25)
-        ClickButton(btn)
+        ClickButtonNoCursor(btn)
         return true
     end
     return false
@@ -331,7 +532,7 @@ local function DoAutoRebirthSequence()
         end
         if rebirthBtn then
             task.wait(0.25)
-            ClickButton(rebirthBtn)
+            ClickButtonNoCursor(rebirthBtn)
             task.wait(0.25)
         end
     end
@@ -352,7 +553,7 @@ local function DoAutoRebirthSequence()
         end
         if nowBtn then
             task.wait(0.25)
-            ClickButton(nowBtn)
+            ClickButtonNoCursor(nowBtn)
             task.wait(0.25)
         end
     end
@@ -373,7 +574,7 @@ local function DoAutoRebirthSequence()
         end
         if yesBtn then
             task.wait(0.25)
-            ClickButton(yesBtn)
+            ClickButtonNoCursor(yesBtn)
             return true
         end
     end
@@ -409,6 +610,96 @@ end)
 
 local statusPrgf = nil
 
+local function EnableAntiKillBrick()
+    getgenv().AntiKillBrickEnabled = true
+    for _, v in ipairs(workspace:GetDescendants()) do
+        if v.Name == "KillBrick" and v:IsA("BasePart") then
+            pcall(function() v.CanTouch = false end)
+        end
+    end
+    if getgenv().AntiKillBrickConn then
+        pcall(function() getgenv().AntiKillBrickConn:Disconnect() end)
+    end
+    getgenv().AntiKillBrickConn = workspace.DescendantAdded:Connect(function(obj)
+        if getgenv().AntiKillBrickEnabled and obj.Name == "KillBrick" and obj:IsA("BasePart") then
+            task.wait(0.1)
+            pcall(function() obj.CanTouch = false end)
+        end
+    end)
+end
+
+local function DisableAntiKillBrick()
+    getgenv().AntiKillBrickEnabled = true
+    if getgenv().AntiKillBrickConn then
+        pcall(function() getgenv().AntiKillBrickConn:Disconnect() end)
+        getgenv().AntiKillBrickConn = nil
+    end
+    for _, v in ipairs(workspace:GetDescendants()) do
+        if v.Name == "KillBrick" and v:IsA("BasePart") then
+            pcall(function() v.CanTouch = true end)
+        end
+    end
+end
+
+local function EnableFarmPhysics()
+    if getgenv().FarmPhysicsEnabled then return end
+    getgenv().FarmPhysicsEnabled = true
+    getgenv().OriginalGravity = workspace.Gravity
+    workspace.Gravity = 0
+    local RunService = game:GetService("RunService")
+    if getgenv().FarmGravityConn then
+        pcall(function() getgenv().FarmGravityConn:Disconnect() end)
+    end
+    getgenv().FarmGravityConn = RunService.Heartbeat:Connect(function()
+        if not getgenv().FarmEnabled then return end
+        local char = game.Players.LocalPlayer.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
+        local vel = hrp.AssemblyLinearVelocity
+        local horizMag = Vector3.new(vel.X, 0, vel.Z).Magnitude
+        if horizMag > 80 then
+            if workspace.Gravity < 50 then
+                workspace.Gravity = math.min(workspace.Gravity + 5, 50)
+            end
+        else
+            if workspace.Gravity > 0 then
+                workspace.Gravity = math.max(workspace.Gravity - 2, 0)
+            end
+        end
+        if vel.Y < -50 then
+            local newVel = Vector3.new(vel.X * 0.5, -15, vel.Z * 0.5)
+            hrp.AssemblyLinearVelocity = newVel
+        end
+    end)
+end
+
+local function DisableFarmPhysics()
+    if not getgenv().FarmPhysicsEnabled then return end
+    getgenv().FarmPhysicsEnabled = false
+    if getgenv().FarmGravityConn then
+        pcall(function() getgenv().FarmGravityConn:Disconnect() end)
+        getgenv().FarmGravityConn = nil
+    end
+    pcall(function()
+        workspace.Gravity = getgenv().OriginalGravity or 196.2
+    end)
+end
+
+local function FindNext10Checkpoint(sorted, cur)
+    for _, d in ipairs(sorted) do
+        if d.num > cur and d.num % 10 == 0 then
+            return d
+        end
+    end
+    local target = math.floor(cur / 10) * 10 + 10
+    for _, d in ipairs(sorted) do
+        if d.num >= target then
+            return d
+        end
+    end
+    return nil
+end
+
 local function StartFarmLoop()
     local TweenService = game:GetService("TweenService")
     local player = game.Players.LocalPlayer
@@ -418,7 +709,9 @@ local function StartFarmLoop()
         local sorted = GetSortedList(folder)
         if #sorted == 0 then getgenv().FarmEnabled = false return end
         if getgenv().TPMode == "Fast" then
+            EnableFarmPhysics()
             while getgenv().FarmEnabled do
+        pcall(function() AdjustGravityByYDistance() end)
                 local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
                 local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
                 if not hrp or not hum then task.wait(0.1) continue end
@@ -435,13 +728,16 @@ local function StartFarmLoop()
                 until (newStage >= nextData.num) or (tick() - t0 > 0.5) or not getgenv().FarmEnabled
                 if newStage >= nextData.num then
                     SaveCheckpoint(newStage)
+                    if newStage % 10 == 0 then
+                        task.wait(2)
+                    end
                     local nextNext = FindNextPart(sorted, newStage)
                     if nextNext then
                         hum.Health = 0
                         local newChar = nil
                         local con = player.CharacterAdded:Connect(function(c) newChar = c end)
                         local timeout = 0
-                        repeat task.wait(0.1) timeout += 0.1 until newChar or timeout > 8 or not getgenv().FarmEnabled
+                        repeat task.wait(0.1) timeout = timeout + 0.1 until newChar or timeout > 8 or not getgenv().FarmEnabled
                         if con then con:Disconnect() end
                         if not getgenv().FarmEnabled then break end
                         if newChar then
@@ -460,7 +756,9 @@ local function StartFarmLoop()
                     task.wait(0.05)
                 end
             end
+            DisableFarmPhysics()
         else
+            EnableFarmPhysics()
             local uiStage = GetCurrentStageUI()
             if uiStage then SaveCheckpoint(uiStage) end
             local startIdx = 1
@@ -481,7 +779,7 @@ local function StartFarmLoop()
                             if hrp then
                                 SafeTP(hrp, CFrame.new(curPart.Position.X, curPart.Position.Y + 3, curPart.Position.Z))
                             end
-                            task.wait(0.3)
+                            task.wait(0.1)
                             idx = curIdx + 1
                             SaveCheckpoint(curUI)
                             continue
@@ -495,7 +793,7 @@ local function StartFarmLoop()
                     if speedOverride == 0 then SafeTP(hrp, targetCF) return true end
                     local dist = (hrp.Position - targetCF.Position).Magnitude
                     if dist < 3 then return true end
-                    local duration = dist / math.max(getgenv().FarmSpeed, 1)
+                    local duration = dist / math.max(getgenv().FarmSpeed * 2, 1)
                     local tween = TweenService:Create(hrp, TweenInfo.new(duration, Enum.EasingStyle.Linear), { CFrame = targetCF })
                     getgenv().CurrentTween = tween
                     tween:Play()
@@ -512,7 +810,7 @@ local function StartFarmLoop()
                 local targetCF = CFrame.new(data.part.Position.X, data.part.Position.Y + 3, data.part.Position.Z)
                 if not TweenTo(targetCF) then break end
                 if not getgenv().FarmEnabled then break end
-                task.wait(1.2)
+                task.wait(0.4)
                 if not getgenv().FarmEnabled then break end
                 local curUI2 = GetCurrentStageUI()
                 if curUI2 then
@@ -525,7 +823,7 @@ local function StartFarmLoop()
                                 if hrp then
                                     SafeTP(hrp, CFrame.new(curPart.Position.X, curPart.Position.Y + 3, curPart.Position.Z))
                                 end
-                                task.wait(0.3)
+                                task.wait(0.1)
                                 idx = curIdx + 1
                                 SaveCheckpoint(curUI2)
                                 continue
@@ -533,6 +831,9 @@ local function StartFarmLoop()
                         end
                     else
                         SaveCheckpoint(curUI2)
+                        if curUI2 % 10 == 0 then
+                            task.wait(2)
+                        end
                     end
                 else
                     SaveCheckpoint(data.num)
@@ -557,9 +858,48 @@ local function StartFarmLoop()
                 idx += 1
             end
         end
+        DisableFarmPhysics()
         getgenv().FarmEnabled = false
     end)
 end
+
+farmBox:Addtoggle({
+    title = "Auto Farming",
+    value = false,
+    callback = function(state)
+        getgenv().AutoFarmingEnabled = state
+        if not state then
+            getgenv().FarmEnabled = false
+            getgenv().AutoRebirth = false
+            if getgenv().CurrentTween then
+                pcall(function() getgenv().CurrentTween:Cancel() end)
+                getgenv().CurrentTween = nil
+            end
+            DisableFarmPhysics()
+            return
+        end
+        getgenv().TPMode = "Fast"
+        getgenv().RebirthAtCheckpoint = 100
+        getgenv().FarmEnabled = true
+        getgenv().AutoRebirth = true
+        StartFarmLoop()
+        task.spawn(function()
+            while getgenv().AutoFarmingEnabled and getgenv().AutoRebirth do
+                pcall(function()
+                    HandleErrorUI()
+                    local cur = GetCurrentStageUI()
+                    local need = 100
+                    if cur and cur >= need then
+                        DoAutoRebirthSequence()
+                    end
+                end)
+                task.wait(0.5)
+            end
+        end)
+    end
+})
+
+farmBox:AddDivider()
 
 farmBox:Addtoggle({
     title = "Auto Farm",
@@ -571,6 +911,7 @@ farmBox:Addtoggle({
                 pcall(function() getgenv().CurrentTween:Cancel() end)
                 getgenv().CurrentTween = nil
             end
+            DisableFarmPhysics()
             pcall(function()
                 local hrp = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
                 if hrp then
@@ -582,6 +923,8 @@ farmBox:Addtoggle({
         StartFarmLoop()
     end
 })
+
+getgenv().AutoFarmingEnabled = false
 
 farmBox:Addtoggle({
     title = "Auto Rebirth",
@@ -825,15 +1168,22 @@ manualBox:Addbutton({
 
 serverSection:Addtoggle({
     title = "anti KillBrick",
-    value = false,
+    value = true,
     callback = function(state)
-        for _, v in ipairs(workspace:GetDescendants()) do
-            if v.Name == "KillBrick" and v:IsA("BasePart") then
-                v.CanTouch = not state
-            end
+        if state then
+            EnableAntiKillBrick()
+        else
+            DisableAntiKillBrick()
         end
     end
 })
+
+task.spawn(function()
+    task.wait(1)
+    pcall(function()
+        EnableAntiKillBrick()
+    end)
+end)
 
 serverSection:Addtoggle({
     title = "Bypass TP",
@@ -972,22 +1322,243 @@ local function GetPlayerNames()
             table.insert(list, p.Name)
         end
     end
-    table.sort(list)
-    if #list == 0 then return { "No Players" } end
+    table.sort(list, function(a,b) return a < b end)
     return list
 end
 
-local spyDropdown = playerSection:AddDropdown({
+local function GetPlayerNamesEmptyInitial()
+    return {}
+end
+
+local function GetStageFromLeaderstatsForPlayer(playerName)
+    if not playerName or playerName == "None" or playerName == "No Players" then
+        return nil
+    end
+    local plr = game.Players:FindFirstChild(playerName)
+    if not plr then return nil end
+    local ls = plr:FindFirstChild("leaderstats")
+    if not ls then
+        for _, v in ipairs(plr:GetChildren()) do
+            if v.Name:lower() == "leaderstats" then
+                ls = v
+                break
+            end
+        end
+    end
+    if ls then
+        local names = {"Stage", "stage", "Checkpoint", "checkpoint", "Level", "level"}
+        for _, n in ipairs(names) do
+            local obj = ls:FindFirstChild(n)
+            if obj and obj:IsA("ValueBase") then
+                return obj.Value
+            end
+        end
+        for _, v in ipairs(ls:GetChildren()) do
+            if v:IsA("IntValue") or v:IsA("NumberValue") then
+                return v.Value
+            elseif v:IsA("StringValue") then
+                local num = tonumber(tostring(v.Value):match("%d+"))
+                if num then return num end
+            end
+        end
+    end
+    return nil
+end
+
+local function GetNearestCheckpointForPlayer(playerName)
+    if not playerName or playerName == "None" or playerName == "No Players" then
+        return nil
+    end
+    local plr = game.Players:FindFirstChild(playerName)
+    if not plr or not plr.Character then
+        return GetStageFromLeaderstatsForPlayer(playerName)
+    end
+    local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+    if not hrp then
+        return GetStageFromLeaderstatsForPlayer(playerName)
+    end
+    local folder = GetFolder()
+    if not folder then
+        return GetStageFromLeaderstatsForPlayer(playerName)
+    end
+    local sorted = GetSortedList(folder)
+    if #sorted == 0 then
+        return GetStageFromLeaderstatsForPlayer(playerName)
+    end
+    local nearest = nil
+    local minDist = math.huge
+    for _, data in ipairs(sorted) do
+        if data.part and data.part.Parent then
+            local dist = (data.part.Position - hrp.Position).Magnitude
+            if dist < minDist then
+                minDist = dist
+                nearest = data
+            end
+        end
+    end
+    if nearest then
+        return nearest.num, nearest.part
+    end
+    return GetStageFromLeaderstatsForPlayer(playerName)
+end
+
+local function FindSelectedStageInPlayerFolder()
+    local plr = game.Players.LocalPlayer
+    local obj = plr:FindFirstChild("SelectedStage")
+    if obj and obj:IsA("ValueBase") then return obj end
+    for _, v in ipairs(plr:GetDescendants()) do
+        if v.Name == "SelectedStage" and v:IsA("ValueBase") then
+            return v
+        end
+    end
+    local pg = plr:FindFirstChild("PlayerGui")
+    if pg then
+        for _, v in ipairs(pg:GetDescendants()) do
+            if v.Name == "SelectedStage" and v:IsA("ValueBase") then
+                return v
+            end
+        end
+    end
+    for _, v in ipairs(game:GetDescendants()) do
+        if v.Name == "SelectedStage" and v:IsA("ValueBase") then
+            local parent = v.Parent
+            local found = false
+            while parent do
+                if parent == plr then found = true break end
+                parent = parent.Parent
+            end
+            if found then return v end
+        end
+    end
+    for _, v in ipairs(plr:GetDescendants()) do
+        if (v.Name:lower():find("selected") and v.Name:lower():find("stage")) or v.Name == "SelectedCheckpoint" then
+            if v:IsA("ValueBase") then return v end
+        end
+    end
+    return nil
+end
+
+local function SetSelectedStageValue(targetCheckpoint)
+    local selectedStageObj = FindSelectedStageInPlayerFolder()
+    if not selectedStageObj then
+        local myselfFolder = nil
+        for _, v in ipairs(workspace:GetDescendants()) do
+            if v.Name == game.Players.LocalPlayer.Name and v:FindFirstChild("SelectedStage") then
+                myselfFolder = v
+                break
+            end
+        end
+        if myselfFolder then
+            selectedStageObj = myselfFolder:FindFirstChild("SelectedStage")
+        end
+    end
+    
+    if selectedStageObj then
+        local newVal = targetCheckpoint - 1
+        pcall(function()
+            selectedStageObj.Value = newVal
+        end)
+        return true, selectedStageObj
+    else
+        return false, nil
+    end
+end
+
+local function ScannerWorkspaceNearPlayer(playerName)
+    local plr = game.Players:FindFirstChild(playerName)
+    if not plr or not plr.Character then return nil end
+    local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return nil end
+    
+    local nearestNum, nearestPart = GetNearestCheckpointForPlayer(playerName)
+    if nearestNum and nearestPart then
+        return nearestNum, nearestPart
+    end
+    return nil, nil
+end
+
+getgenv().TPToPlayerRunning = false
+getgenv().TPToPlayerTarget = nil
+
+local function Levenshtein(s, t)
+    local m, n = #s, #t
+    if m == 0 then return n end
+    if n == 0 then return m end
+    local d = {}
+    for i = 0, m do d[i] = {[0]=i} end
+    for j = 0, n do d[0][j] = j end
+    for i = 1, m do
+        for j = 1, n do
+            local cost = s:sub(i,i) == t:sub(j,j) and 0 or 1
+            d[i][j] = math.min(d[i-1][j] + 1, d[i][j-1] + 1, d[i-1][j-1] + cost)
+        end
+    end
+    return d[m][n]
+end
+
+local function FindSimilarPlayer(inputText)
+    if not inputText or inputText == "" then return nil end
+    local low = inputText:lower()
+    local best, bestScore = nil, math.huge
+    for _, p in ipairs(game.Players:GetPlayers()) do
+        if p.Name ~= game.Players.LocalPlayer.Name then
+            local nameLow = p.Name:lower()
+            if nameLow:find(low, 1, true) or low:find(nameLow, 1, true) then
+                return p.Name, 0
+            end
+            local dist = Levenshtein(low, nameLow)
+            local maxLen = math.max(#low, #nameLow)
+            local sim = maxLen > 0 and dist / maxLen or 1
+            if sim < 0.5 and dist < bestScore then
+                bestScore = dist
+                best = p.Name
+            end
+        end
+    end
+    return best, bestScore
+end
+
+local playerStatusPrgf = nil
+getgenv().AutoCurrentSimilar = nil
+
+playerSection:AddInput({
     Title = "select Player",
-    Values = GetPlayerNames(),
-    Value = { GetPlayerNames()[1] or "No Players" },
-    Multi = false,
-    Search = true,
-    Callback = function(selected)
-        local val = type(selected) == "table" and selected[1] or selected
-        getgenv().SelectedSpyPlayer = val
-        if getgenv().SpectatorEnabled then
-            local target = game.Players:FindFirstChild(val)
+    Value = "",
+    Callback = function(text)
+        if not text or text == "" then
+            getgenv().SelectedSpyPlayer = nil
+            getgenv().AutoCurrentSimilar = nil
+            if playerStatusPrgf then
+                playerStatusPrgf:SetDesc("• auto current : -\n• selected : -\n• stage : -")
+            end
+            return
+        end
+        local exact = game.Players:FindFirstChild(text)
+        if exact then
+            getgenv().SelectedSpyPlayer = exact.Name
+            getgenv().AutoCurrentSimilar = exact.Name
+        else
+            local similar, score = FindSimilarPlayer(text)
+            if similar then
+                getgenv().SelectedSpyPlayer = similar
+                getgenv().AutoCurrentSimilar = similar
+            else
+                getgenv().SelectedSpyPlayer = nil
+                getgenv().AutoCurrentSimilar = "tidak ada yang mirip"
+            end
+        end
+        if playerStatusPrgf then
+            local sel = getgenv().SelectedSpyPlayer or "-"
+            local autoCur = getgenv().AutoCurrentSimilar or "-"
+            local stage = "-"
+            if sel ~= "-" then
+                local st = GetStageFromLeaderstatsForPlayer(sel) or GetNearestCheckpointForPlayer(sel)
+                if st then stage = tostring(st) end
+            end
+            playerStatusPrgf:SetDesc("• auto current : "..autoCur.."\n• selected : "..sel.."\n• stage : "..stage)
+        end
+        if getgenv().SpectatorEnabled and getgenv().SelectedSpyPlayer then
+            local target = game.Players:FindFirstChild(getgenv().SelectedSpyPlayer)
             if target and target.Character and target.Character:FindFirstChildOfClass("Humanoid") then
                 workspace.CurrentCamera.CameraSubject = target.Character:FindFirstChildOfClass("Humanoid")
             end
@@ -995,8 +1566,31 @@ local spyDropdown = playerSection:AddDropdown({
     end
 })
 
+playerStatusPrgf = playerSection:AddParagraph({
+    Title = "Player Status",
+    Desc = "• auto current : -\n• selected : -\n• stage : -",
+    Color = "Grey"
+})
+
+task.spawn(function()
+    while task.wait(0.5) do
+        pcall(function()
+            if not playerStatusPrgf then return end
+            local sel = getgenv().SelectedSpyPlayer
+            if not sel or sel == "" then
+                local autoCur = getgenv().AutoCurrentSimilar or "-"
+                playerStatusPrgf:SetDesc("• auto current : "..autoCur.."\n• selected : -\n• stage : -")
+            else
+                local autoCur = getgenv().AutoCurrentSimilar or sel
+                local stage = GetStageFromLeaderstatsForPlayer(sel) or GetNearestCheckpointForPlayer(sel)
+                playerStatusPrgf:SetDesc("• auto current : "..autoCur.."\n• selected : "..tostring(sel).."\n• stage : "..tostring(stage or "-"))
+            end
+        end)
+    end
+end)
+
 playerSection:Addtoggle({
-    title = "Spectator (Fixed)",
+    title = "Spectator",
     value = false,
     callback = function(state)
         getgenv().SpectatorEnabled = state
@@ -1011,7 +1605,7 @@ playerSection:Addtoggle({
         end
         if state then
             local targetName = getgenv().SelectedSpyPlayer
-            if targetName and targetName ~= "No Players" then
+            if targetName then
                 local target = game.Players:FindFirstChild(targetName)
                 if target and target.Character and target.Character:FindFirstChildOfClass("Humanoid") then
                     workspace.CurrentCamera.CameraSubject = target.Character:FindFirstChildOfClass("Humanoid")
@@ -1020,7 +1614,7 @@ playerSection:Addtoggle({
             getgenv().SpectatorConn = game:GetService("RunService").Heartbeat:Connect(function()
                 if not getgenv().SpectatorEnabled then return end
                 local tName = getgenv().SelectedSpyPlayer
-                if not tName or tName == "No Players" then return end
+                if not tName then return end
                 local tPlayer = game.Players:FindFirstChild(tName)
                 if tPlayer and tPlayer.Character then
                     local hum = tPlayer.Character:FindFirstChildOfClass("Humanoid")
@@ -1040,50 +1634,104 @@ playerSection:Addtoggle({
 })
 
 playerSection:Addbutton({
-    title = "TP to player (Fixed)",
+    title = "TP to player",
     callback = function()
         local targetName = getgenv().SelectedSpyPlayer
-        if not targetName or targetName == "No Players" then return end
-        local targetPlayer = game.Players:FindFirstChild(targetName)
-        if not targetPlayer or not targetPlayer.Character then return end
-        local targetHRP = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if not targetHRP then return end
-        local hrp = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if not hrp then return end
-        SafeTP(hrp, CFrame.new(targetHRP.Position.X, targetHRP.Position.Y + 3, targetHRP.Position.Z))
+        if not targetName or targetName == "" then return end
+        local myStage = GetStageFromLeaderstats() or GetCurrentStageFromLabel() or 0
+        local selectStage = GetStageFromLeaderstatsForPlayer(targetName) or GetNearestCheckpointForPlayer(targetName) or 0
+        if selectStage > myStage then return end
+        if myStage <= selectStage then return end
+        if getgenv().TPToPlayerRunning then
+            getgenv().TPToPlayerRunning = false
+            task.wait(0.3)
+        end
+        task.spawn(function()
+            getgenv().TPToPlayerRunning = true
+            getgenv().TPToPlayerTarget = targetName
+            local nearestNum, nearestPart = ScannerWorkspaceNearPlayer(targetName)
+            if not nearestNum then
+                nearestNum = GetNearestCheckpointForPlayer(targetName) or GetStageFromLeaderstatsForPlayer(targetName)
+            end
+            if not nearestNum then
+                getgenv().TPToPlayerRunning = false
+                return
+            end
+            local myStage2 = GetStageFromLeaderstats() or GetCurrentStageFromLabel() or 0
+            local selectStage2 = GetStageFromLeaderstatsForPlayer(targetName) or nearestNum
+            if selectStage2 > myStage2 then
+                getgenv().TPToPlayerRunning = false
+                getgenv().TPToPlayerTarget = nil
+                return
+            end
+            if myStage2 <= selectStage2 then
+                getgenv().TPToPlayerRunning = false
+                getgenv().TPToPlayerTarget = nil
+                return
+            end
+            SetSelectedStageValue(nearestNum)
+            task.wait(0.2)
+            ClickNextButton()
+            local maxWait, waited = 20, 0
+            local reached = false
+            while getgenv().TPToPlayerRunning and waited < maxWait do
+                task.wait(0.3)
+                waited = waited + 0.3
+                local curStage = GetStageFromLeaderstats() or GetCurrentStageFromLabel() or 0
+                if curStage == nearestNum then
+                    reached = true
+                    break
+                end
+                if curStage < nearestNum and waited % 1 < 0.35 then
+                    ClickNextButton()
+                end
+            end
+            if reached then
+                task.wait(0.5)
+                local tPlayer = game.Players:FindFirstChild(targetName)
+                if tPlayer and tPlayer.Character then
+                    local tHrp = tPlayer.Character:FindFirstChild("HumanoidRootPart")
+                    local myHrp = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                    if tHrp and myHrp then
+                        SafeTP(myHrp, CFrame.new(tHrp.Position.X, tHrp.Position.Y + 5, tHrp.Position.Z))
+                        task.wait(0.1)
+                        SafeTP(myHrp, CFrame.new(tHrp.Position.X + 2, tHrp.Position.Y + 3, tHrp.Position.Z))
+                    end
+                end
+            end
+            getgenv().TPToPlayerRunning = false
+            getgenv().TPToPlayerTarget = nil
+        end)
     end
 })
 
 task.spawn(function()
-    local lastList = table.concat(GetPlayerNames(), ",")
     while task.wait(2) do
         pcall(function()
-            local newList = GetPlayerNames()
-            local newStr = table.concat(newList, ",")
-            if newStr ~= lastList then
-                lastList = newStr
-                if spyDropdown and spyDropdown.SetValues then
-                    spyDropdown:SetValues(newList)
+            local sel = getgenv().SelectedSpyPlayer
+            if sel and not game.Players:FindFirstChild(sel) then
+                getgenv().SelectedSpyPlayer = nil
+                getgenv().AutoCurrentSimilar = "player left"
+                if playerStatusPrgf then
+                    playerStatusPrgf:SetDesc("• auto current : player left\n• selected : -\n• stage : -")
                 end
             end
         end)
     end
 end)
 
-game.Players.PlayerAdded:Connect(function()
-    task.wait(1)
-    pcall(function()
-        local newList = GetPlayerNames()
-        if spyDropdown and spyDropdown.SetValues then spyDropdown:SetValues(newList) end
-    end)
+game.Players.PlayerAdded:Connect(function(newPlr)
 end)
 
-game.Players.PlayerRemoving:Connect(function()
-    task.wait(1)
-    pcall(function()
-        local newList = GetPlayerNames()
-        if spyDropdown and spyDropdown.SetValues then spyDropdown:SetValues(newList) end
-    end)
+game.Players.PlayerRemoving:Connect(function(remPlr)
+    task.wait(0.5)
+    if getgenv().SelectedSpyPlayer == remPlr.Name then
+        getgenv().SelectedSpyPlayer = nil
+        getgenv().AutoCurrentSimilar = "player left"
+        if playerStatusPrgf then
+            pcall(function() playerStatusPrgf:SetDesc("• auto current : player left\n• selected : -\n• stage : -") end)
+        end
+    end
 end)
 
 settingUISection:Addbutton({
@@ -1140,25 +1788,14 @@ settingUISection:Addbutton({
         end)
 
         task.wait(0.3)
-        loadstring(game:HttpGet("https://github.com/XVC-THE-CODER/Renux-Hub/releases/latest/download/loaders.lua", true))()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/XVC-THE-CODER/Renux-Hub/refs/heads/main/setting/filter.lua", true))()
     end
 })
 
 statusPrgf = statusBox:AddParagraph({
     Title = "Status",
-    Desc = "• stage : ".. tostring(GetCurrentStageUI() or getgenv().CurrentCheckpoint).. "\n• mode : ".. string.lower(getgenv().TPMode).. "\n• ping : 0 ms\n• fps : 60\n• executor : ".. ExecutorName.. "\n• player in server : ".. #game.Players:GetPlayers().. "/".. game.Players.MaxPlayers,
-    Color = "Blue",
-    Button = {
-        Title = "Refresh",
-        Callback = function()
-            checkpointValuesCache = GetCheckpointValuesFixed()
-            rebirthValuesCache = GetRebirthValues()
-            ExecutorName = GetExecutorName()
-            if statusPrgf then
-                statusPrgf:SetDesc("• stage : ".. tostring(GetCurrentStageUI() or getgenv().CurrentCheckpoint).. "\n• mode : ".. string.lower(getgenv().TPMode).. "\n• ping : ".. getgenv().CurrentPing.. " ms\n• fps : ".. getgenv().CurrentFPS.. "\n• executor : ".. ExecutorName.. "\n• player in server : ".. #game.Players:GetPlayers().. "/".. game.Players.MaxPlayers)
-            end
-        end
-    }
+    Desc = "• stage : ".. tostring(GetStageFromLeaderstats() or GetCurrentStageUI() or getgenv().CurrentCheckpoint).. "\n• mode : ".. string.lower(getgenv().TPMode).. "\n• ping : 0 ms\n• fps : 60\n• executor : ".. ExecutorName.. "\n• player in server : ".. #game.Players:GetPlayers().. "/".. game.Players.MaxPlayers,
+    Color = "Grey"
 })
 
 task.spawn(function()
@@ -1166,7 +1803,7 @@ task.spawn(function()
         if statusPrgf then
             pcall(function()
                 statusPrgf:SetDesc(
-                    "• stage : ".. tostring(GetCurrentStageUI() or getgenv().CurrentCheckpoint).. "\n"..
+                    "• stage : ".. tostring(GetStageFromLeaderstats() or GetCurrentStageUI() or getgenv().CurrentCheckpoint).. "\n"..
                     "• mode : ".. string.lower(getgenv().TPMode).. (getgenv().BypassTP and " + bypass" or "").. "\n"..
                     "• ping : ".. getgenv().CurrentPing.. " ms\n"..
                     "• fps : ".. getgenv().CurrentFPS.. "\n"..
