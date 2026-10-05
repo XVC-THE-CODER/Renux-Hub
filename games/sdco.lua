@@ -15,7 +15,7 @@ library:CreateTheme({
 local window = library:window({
     title = "Renux Hub",
     desc = "spiral difficulty chart obby",
-    transparent = 0.35,
+    transparent = 0.25,
     icon = "moon",
     theme = "Ametis",
     fileName = "RENUX-HUB_save",
@@ -24,7 +24,7 @@ local window = library:window({
 })
 
 window:AddTag({
-    title = "v1.1",
+    title = "v1.2",
     icon = "globe",
     color = Color3.fromRGB(55, 55, 60),
     getclick = false,
@@ -32,7 +32,7 @@ window:AddTag({
 
 window:AddTag({
     title = "keyless",
-    icon = "key-round",
+    icon = "key",
     color = Color3.fromRGB(55, 55, 60),
     getclick = false,
 })
@@ -46,7 +46,7 @@ local suptab = window:AddTab("support", "info")
 suptab:Addbutton({
     title = "copy discord",
     callback = function()
-        (setclipboard or toclipboard)("https://discord.gg/mXnTVYYYsy")
+        (setclipboard or toclipboard)("https://discord.gg/mXnTVYYYsy"),
         library:Notification({title = "copy discord link", desc = "copy link discord valid", duration = 5})
     end
 })
@@ -700,6 +700,7 @@ local function FindNext10Checkpoint(sorted, cur)
     return nil
 end
 
+
 local function StartFarmLoop()
     local TweenService = game:GetService("TweenService")
     local player = game.Players.LocalPlayer
@@ -711,7 +712,7 @@ local function StartFarmLoop()
         if getgenv().TPMode == "Fast" then
             EnableFarmPhysics()
             while getgenv().FarmEnabled do
-        pcall(function() AdjustGravityByYDistance() end)
+                pcall(function() AdjustGravityByYDistance() end)
                 local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
                 local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
                 if not hrp or not hum then task.wait(0.1) continue end
@@ -728,9 +729,7 @@ local function StartFarmLoop()
                 until (newStage >= nextData.num) or (tick() - t0 > 0.5) or not getgenv().FarmEnabled
                 if newStage >= nextData.num then
                     SaveCheckpoint(newStage)
-                    if newStage % 10 == 0 then
-                        task.wait(2)
-                    end
+                    if newStage % 10 == 0 then task.wait(2) end
                     local nextNext = FindNextPart(sorted, newStage)
                     if nextNext then
                         hum.Health = 0
@@ -831,9 +830,7 @@ local function StartFarmLoop()
                         end
                     else
                         SaveCheckpoint(curUI2)
-                        if curUI2 % 10 == 0 then
-                            task.wait(2)
-                        end
+                        if curUI2 % 10 == 0 then task.wait(2) end
                     end
                 else
                     SaveCheckpoint(data.num)
@@ -863,14 +860,75 @@ local function StartFarmLoop()
     end)
 end
 
+local function StartAutoFarmingLoop()
+    local player = game.Players.LocalPlayer
+    task.spawn(function()
+        local folder = GetFolder()
+        if not folder then getgenv().AutoFarmingFarmEnabled = false return end
+        local sorted = GetSortedList(folder)
+        if #sorted == 0 then getgenv().AutoFarmingFarmEnabled = false return end
+        EnableFarmPhysics()
+        while getgenv().AutoFarmingFarmEnabled do
+            pcall(function() AdjustGravityByYDistance() end)
+            local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+            local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+            if not hrp or not hum then task.wait(0.1) continue end
+            local curStage = GetCurrentStageUI() or getgenv().CurrentCheckpoint or 0
+            local nextData = FindNextPart(sorted, curStage)
+            if not nextData then getgenv().AutoFarmingFarmEnabled = false break end
+            SafeTP(hrp, CFrame.new(nextData.part.Position.X, nextData.part.Position.Y + 3.5, nextData.part.Position.Z))
+            task.wait(0.25)
+            local t0 = tick()
+            local newStage = curStage
+            repeat
+                task.wait(0.03)
+                newStage = GetCurrentStageUI() or curStage
+            until (newStage >= nextData.num) or (tick() - t0 > 0.5) or not getgenv().AutoFarmingFarmEnabled
+            if newStage >= nextData.num then
+                SaveCheckpoint(newStage)
+                if newStage % 10 == 0 then task.wait(2) end
+                local nextNext = FindNextPart(sorted, newStage)
+                if nextNext then
+                    hum.Health = 0
+                    local newChar = nil
+                    local con = player.CharacterAdded:Connect(function(c) newChar = c end)
+                    local timeout = 0
+                    repeat task.wait(0.1) timeout = timeout + 0.1 until newChar or timeout > 8 or not getgenv().AutoFarmingFarmEnabled
+                    if con then con:Disconnect() end
+                    if not getgenv().AutoFarmingFarmEnabled then break end
+                    if newChar then
+                        newChar:WaitForChild("HumanoidRootPart", 5)
+                        task.wait(0.1)
+                        local newHrp = newChar:FindFirstChild("HumanoidRootPart")
+                        if newHrp then
+                            SafeTP(newHrp, CFrame.new(nextNext.part.Position.X, nextNext.part.Position.Y + 3.5, nextNext.part.Position.Z))
+                            task.wait(0.1)
+                        end
+                    end
+                else
+                    getgenv().AutoFarmingFarmEnabled = false break
+                end
+            else
+                task.wait(0.05)
+            end
+        end
+        DisableFarmPhysics()
+    end)
+end
+
+getgenv().AutoFarmingEnabled = false
+getgenv().AutoFarmingFarmEnabled = false
+getgenv().AutoFarmingRebirthEnabled = false
+
 farmBox:Addtoggle({
     title = "Auto Farming",
     value = false,
     callback = function(state)
         getgenv().AutoFarmingEnabled = state
+        getgenv().AutoFarmingFarmEnabled = state
+        getgenv().AutoFarmingRebirthEnabled = state
         if not state then
-            getgenv().FarmEnabled = false
-            getgenv().AutoRebirth = false
+            getgenv().AutoFarmingRebirthEnabled = false
             if getgenv().CurrentTween then
                 pcall(function() getgenv().CurrentTween:Cancel() end)
                 getgenv().CurrentTween = nil
@@ -878,19 +936,33 @@ farmBox:Addtoggle({
             DisableFarmPhysics()
             return
         end
-        getgenv().TPMode = "Fast"
-        getgenv().RebirthAtCheckpoint = 100
-        getgenv().FarmEnabled = true
-        getgenv().AutoRebirth = true
-        StartFarmLoop()
+        if getgenv().FarmEnabled then
+            getgenv().FarmEnabled = false
+            getgenv().AutoRebirth = false
+            if getgenv().CurrentTween then
+                pcall(function() getgenv().CurrentTween:Cancel() end)
+                getgenv().CurrentTween = nil
+            end
+            DisableFarmPhysics()
+            task.wait(0.3)
+        end
+        StartAutoFarmingLoop()
         task.spawn(function()
-            while getgenv().AutoFarmingEnabled and getgenv().AutoRebirth do
+            while getgenv().AutoFarmingEnabled and getgenv().AutoFarmingRebirthEnabled do
                 pcall(function()
                     HandleErrorUI()
                     local cur = GetCurrentStageUI()
-                    local need = 100
-                    if cur and cur >= need then
-                        DoAutoRebirthSequence()
+                    if cur and cur >= 100 then
+                        if DoAutoRebirthSequence() then
+                            local wasFarm = getgenv().AutoFarmingFarmEnabled
+                            getgenv().AutoFarmingFarmEnabled = false
+                            SaveCheckpoint(0)
+                            task.wait(2)
+                            if wasFarm and getgenv().AutoFarmingEnabled then
+                                getgenv().AutoFarmingFarmEnabled = true
+                                StartAutoFarmingLoop()
+                            end
+                        end
                     end
                 end)
                 task.wait(0.5)
@@ -905,6 +977,16 @@ farmBox:Addtoggle({
     title = "Auto Farm",
     value = false,
     callback = function(state)
+        if state and getgenv().AutoFarmingEnabled then
+            getgenv().AutoFarmingEnabled = false
+            getgenv().AutoFarmingFarmEnabled = false
+            getgenv().AutoFarmingRebirthEnabled = false
+            if getgenv().CurrentTween then
+                pcall(function() getgenv().CurrentTween:Cancel() end)
+                getgenv().CurrentTween = nil
+            end
+            DisableFarmPhysics()
+        end
         getgenv().FarmEnabled = state
         if not state then
             if getgenv().CurrentTween then
@@ -923,8 +1005,6 @@ farmBox:Addtoggle({
         StartFarmLoop()
     end
 })
-
-getgenv().AutoFarmingEnabled = false
 
 farmBox:Addtoggle({
     title = "Auto Rebirth",
@@ -1590,7 +1670,7 @@ task.spawn(function()
 end)
 
 playerSection:Addtoggle({
-    title = "Spectator",
+    title = "Spectator (Fixed)",
     value = false,
     callback = function(state)
         getgenv().SpectatorEnabled = state
@@ -1640,8 +1720,12 @@ playerSection:Addbutton({
         if not targetName or targetName == "" then return end
         local myStage = GetStageFromLeaderstats() or GetCurrentStageFromLabel() or 0
         local selectStage = GetStageFromLeaderstatsForPlayer(targetName) or GetNearestCheckpointForPlayer(targetName) or 0
-        if selectStage > myStage then return end
-        if myStage <= selectStage then return end
+        if selectStage > myStage then
+            return
+        end
+        if myStage <= selectStage then
+            return
+        end
         if getgenv().TPToPlayerRunning then
             getgenv().TPToPlayerRunning = false
             task.wait(0.3)
@@ -1669,7 +1753,7 @@ playerSection:Addbutton({
                 getgenv().TPToPlayerTarget = nil
                 return
             end
-            SetSelectedStageValue(nearestNum)
+            local success = SetSelectedStageValue(nearestNum)
             task.wait(0.2)
             ClickNextButton()
             local maxWait, waited = 20, 0
@@ -1687,16 +1771,12 @@ playerSection:Addbutton({
                 end
             end
             if reached then
-                task.wait(0.5)
+                task.wait(0.2)
                 local tPlayer = game.Players:FindFirstChild(targetName)
-                if tPlayer and tPlayer.Character then
-                    local tHrp = tPlayer.Character:FindFirstChild("HumanoidRootPart")
-                    local myHrp = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-                    if tHrp and myHrp then
-                        SafeTP(myHrp, CFrame.new(tHrp.Position.X, tHrp.Position.Y + 5, tHrp.Position.Z))
-                        task.wait(0.1)
-                        SafeTP(myHrp, CFrame.new(tHrp.Position.X + 2, tHrp.Position.Y + 3, tHrp.Position.Z))
-                    end
+                local tHrp = tPlayer and tPlayer.Character and tPlayer.Character:FindFirstChild("HumanoidRootPart")
+                local myHrp = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                if tHrp and myHrp then
+                    SafeTP(myHrp, CFrame.new(tHrp.Position.X, tHrp.Position.Y + 3, tHrp.Position.Z))
                 end
             end
             getgenv().TPToPlayerRunning = false
