@@ -46,7 +46,7 @@ local suptab = window:AddTab("support", "info")
 suptab:Addbutton({
     title = "copy discord",
     callback = function()
-        (setclipboard or toclipboard)("https://discord.gg/mXnTVYYYsy"),
+        (setclipboard or toclipboard)("https://discord.gg/mXnTVYYYsy")
         library:Notification({title = "copy discord link", desc = "copy link discord valid", duration = 5})
     end
 })
