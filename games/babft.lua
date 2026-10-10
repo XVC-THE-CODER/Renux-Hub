@@ -177,7 +177,7 @@ local waterConn = nil
 local deleteObstacleEnabled = false
 local deleteObstacleConn = nil
 
-local targetPos = Vector3.new(-56, -359, 9480)
+local targetPos = Vector3.new(-56, -359, 9485)
 
 local SOUND_CHECK_DURATION = 2
 local SOUND_AT_TARGET_DIST = 150
