@@ -1626,7 +1626,7 @@ Tab:AddDropdown({
     Values = { "tween", "teleport" },
     Value = { "teleport" },
     Multi = false,
-    Search = true,
+    Search = false,
     Callback = function(s)
         farmMode = type(s) == "table" and s[1] or s
     end
@@ -1638,7 +1638,7 @@ Tab:AddDropdown({
     Values = { "slow (all gold But slow)", "normal (recommend)", "fast (low gold)" },
     Value = { "normal (recommend)" },
     Multi = false,
-    Search = true,
+    Search = false,
     Callback = function(s)
         local m = type(s) == "table" and s[1] or s
 
