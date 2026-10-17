@@ -17,6 +17,7 @@ local window = library:window({
     desc = "spiral difficulty chart obby",
     transparent = 0.25,
     icon = "moon",
+    CanAutoSave = true,
     theme = "Ametis",
     fileName = "RENUX-HUB_save",
     autoshow = true,
