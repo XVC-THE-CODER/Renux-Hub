@@ -254,9 +254,7 @@ local function GetStageFromLeaderstats()
 end
 local function GetCurrentStageLeaderstats()
     local lsStage = GetStageFromLeaderstats()
-    if lsStage then
-        return lsStage
-    end
+    if lsStage then return lsStage end
     return GetCurrentStageUI() or getgenv().CurrentCheckpoint or 0
 end
 local function FindIndexByNum(sorted, num)
@@ -554,32 +552,38 @@ end
 local HttpService = game:GetService("HttpService")
 local TeleportService = game:GetService("TeleportService")
 local RECONNECT_URL = "https://raw.githubusercontent.com/XVC-THE-CODER/Renux-Hub/refs/heads/main/games/sdco.lua"
-local function QueueReconnect()
-    local ok, mainCode = pcall(function()
+local function GetMainCode()
+    local ok, code = pcall(function()
         return game:HttpGet(RECONNECT_URL, true)
     end)
-    if not ok or not mainCode or mainCode == "" then return end
+    if ok and code and code ~= "" then return code end
+    return nil
+end
+local function QueueCode(code)
+    if not code or code == "" then return end
     pcall(function()
-        if writefile then
-            writefile("renux_main.lua", mainCode)
-            writefile("renux_autoreconnect.json", HttpService:JSONEncode({
-                autoReconnect = true,
-                time = os.time(),
-                placeId = game.PlaceId
-            }))
-        end
-    end)
-    pcall(function()
-        if queue_on_teleport then queue_on_teleport(mainCode) end
-        if queueonteleport then queueonteleport(mainCode) end
-        if syn and syn.queue_on_teleport then syn.queue_on_teleport(mainCode) end
-        if fluxus and fluxus.queue_on_teleport then fluxus.queue_on_teleport(mainCode) end
+        if queue_on_teleport then queue_on_teleport(code) end
+        if queueonteleport then queueonteleport(code) end
+        if syn and syn.queue_on_teleport then syn.queue_on_teleport(code) end
+        if fluxus and fluxus.queue_on_teleport then fluxus.queue_on_teleport(code) end
     end)
 end
 local function ServerHop()
-    QueueReconnect()
+    local code = GetMainCode()
+    if code then QueueCode(code) end
     pcall(function()
         TeleportService:Teleport(game.PlaceId, game.Players.LocalPlayer)
+    end)
+end
+local function Rejoin()
+    local code = GetMainCode()
+    if code then QueueCode(code) end
+    pcall(function()
+        if game.JobId and game.JobId ~= "" then
+            TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, game.Players.LocalPlayer)
+        else
+            TeleportService:Teleport(game.PlaceId, game.Players.LocalPlayer)
+        end
     end)
 end
 local function EnableAutoReconnect()
@@ -615,27 +619,7 @@ end
 local function DisableAutoReconnect()
     getgenv().AutoReconnectEnabled = false
     getgenv().AutoReconnectConn = nil
-    pcall(function()
-        if delfile and isfile and isfile("renux_autoreconnect.json") then delfile("renux_autoreconnect.json") end
-        if delfile and isfile and isfile("renux_autoreconnect_toggle.json") then delfile("renux_autoreconnect_toggle.json") end
-    end)
 end
-pcall(function()
-    if isfile and isfile("renux_autoreconnect.json") then
-        local raw = readfile("renux_autoreconnect.json")
-        local ok, data = pcall(function() return HttpService:JSONDecode(raw) end)
-        if ok and data and data.autoReconnect then
-            pcall(function() delfile("renux_autoreconnect.json") end)
-        end
-    end
-    if isfile and isfile("renux_autoreconnect_toggle.json") then
-        local raw = readfile("renux_autoreconnect_toggle.json")
-        local ok, data = pcall(function() return HttpService:JSONDecode(raw) end)
-        if ok and data and data.enabled ~= nil then
-            getgenv().AutoReconnectEnabled = data.enabled
-        end
-    end
-end)
 if getgenv().AutoReconnectEnabled then
     task.spawn(function()
         task.wait(1)
@@ -683,16 +667,6 @@ local function DisableFarmPhysics()
     pcall(function()
         workspace.Gravity = getgenv().OriginalGravity or 196.2
     end)
-end
-local function FindNext10Checkpoint(sorted, cur)
-    for _, d in ipairs(sorted) do
-        if d.num > cur and d.num % 10 == 0 then return d end
-    end
-    local target = math.floor(cur / 10) * 10 + 10
-    for _, d in ipairs(sorted) do
-        if d.num >= target then return d end
-    end
-    return nil
 end
 local function StartFarmLoop()
     local TweenService = game:GetService("TweenService")
@@ -843,58 +817,6 @@ local function StartFarmLoop()
         getgenv().FarmEnabled = false
     end)
 end
-local function StartAutoFarmingLoop()
-    local player = game.Players.LocalPlayer
-    task.spawn(function()
-        local folder = GetFolder()
-        if not folder then getgenv().AutoFarmingFarmEnabled = false return end
-        local sorted = GetSortedList(folder)
-        if #sorted == 0 then getgenv().AutoFarmingFarmEnabled = false return end
-        EnableFarmPhysics()
-        while getgenv().AutoFarmingFarmEnabled do
-            pcall(function() AdjustGravityByYDistance() end)
-            local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-            local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-            if not hrp or not hum then task.wait(0.1) continue end
-            local curStage = GetCurrentStageUI() or getgenv().CurrentCheckpoint or 0
-            local nextData = FindNextPart(sorted, curStage)
-            if not nextData then getgenv().AutoFarmingFarmEnabled = false break end
-            SafeTP(hrp, CFrame.new(nextData.part.Position.X, nextData.part.Position.Y + 3.5, nextData.part.Position.Z))
-            task.wait(0.25)
-            local t0 = tick()
-            local newStage = curStage
-            repeat task.wait(0.03) newStage = GetCurrentStageUI() or curStage until (newStage >= nextData.num) or (tick() - t0 > 0.5) or not getgenv().AutoFarmingFarmEnabled
-            if newStage >= nextData.num then
-                SaveCheckpoint(newStage)
-                if newStage % 10 == 0 then task.wait(2) end
-                local nextNext = FindNextPart(sorted, newStage)
-                if nextNext then
-                    hum.Health = 0
-                    local newChar = nil
-                    local con = player.CharacterAdded:Connect(function(c) newChar = c end)
-                    local timeout = 0
-                    repeat task.wait(0.1) timeout = timeout + 0.1 until newChar or timeout > 8 or not getgenv().AutoFarmingFarmEnabled
-                    if con then con:Disconnect() end
-                    if not getgenv().AutoFarmingFarmEnabled then break end
-                    if newChar then
-                        newChar:WaitForChild("HumanoidRootPart", 5)
-                        task.wait(0.1)
-                        local newHrp = newChar:FindFirstChild("HumanoidRootPart")
-                        if newHrp then
-                            SafeTP(newHrp, CFrame.new(nextNext.part.Position.X, nextNext.part.Position.Y + 3.5, nextNext.part.Position.Z))
-                            task.wait(0.1)
-                        end
-                    end
-                else
-                    getgenv().AutoFarmingFarmEnabled = false break
-                end
-            else
-                task.wait(0.05)
-            end
-        end
-        DisableFarmPhysics()
-    end)
-end
 getgenv().AutoFarmingEnabled = false
 getgenv().AutoFarmingFarmEnabled = false
 getgenv().AutoFarmingRebirthEnabled = false
@@ -925,27 +847,6 @@ farmBox:Addtoggle({
             task.wait(0.3)
         end
         StartAutoFarmingLoop()
-        task.spawn(function()
-            while getgenv().AutoFarmingEnabled and getgenv().AutoFarmingRebirthEnabled do
-                pcall(function()
-                    HandleErrorUI()
-                    local cur = GetCurrentStageUI()
-                    if cur and cur >= 100 then
-                        if DoAutoRebirthSequence() then
-                            local wasFarm = getgenv().AutoFarmingFarmEnabled
-                            getgenv().AutoFarmingFarmEnabled = false
-                            SaveCheckpoint(0)
-                            task.wait(2)
-                            if wasFarm and getgenv().AutoFarmingEnabled then
-                                getgenv().AutoFarmingFarmEnabled = true
-                                StartAutoFarmingLoop()
-                            end
-                        end
-                    end
-                end)
-                task.wait(0.5)
-            end
-        end)
     end
 })
 farmBox:AddDivider()
@@ -953,16 +854,6 @@ farmBox:Addtoggle({
     title = "Auto Farm",
     value = false,
     callback = function(state)
-        if state and getgenv().AutoFarmingEnabled then
-            getgenv().AutoFarmingEnabled = false
-            getgenv().AutoFarmingFarmEnabled = false
-            getgenv().AutoFarmingRebirthEnabled = false
-            if getgenv().CurrentTween then
-                pcall(function() getgenv().CurrentTween:Cancel() end)
-                getgenv().CurrentTween = nil
-            end
-            DisableFarmPhysics()
-        end
         getgenv().FarmEnabled = state
         if not state then
             if getgenv().CurrentTween then
@@ -970,12 +861,6 @@ farmBox:Addtoggle({
                 getgenv().CurrentTween = nil
             end
             DisableFarmPhysics()
-            pcall(function()
-                local hrp = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-                if hrp then
-                    SafeTP(hrp, CFrame.new(hrp.Position.X, hrp.Position.Y + 5, hrp.Position.Z))
-                end
-            end)
             return
         end
         StartFarmLoop()
@@ -1125,20 +1010,6 @@ manualBox:Addbutton({
             while idx <= endIdx do
                 local data = sorted[idx]
                 if not data.part or not data.part.Parent then idx += 1 continue end
-                local curStageNow = GetCurrentStageUI() or getgenv().CurrentCheckpoint or 0
-                if (data.num - curStageNow) > 2 then
-                    local curIdx = FindIndexByNum(sorted, curStageNow)
-                    if curIdx then
-                        local curPart = sorted[curIdx].part
-                        local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-                        if hrp and curPart then
-                            SafeTP(hrp, CFrame.new(curPart.Position.X, curPart.Position.Y + 3, curPart.Position.Z))
-                            task.wait(0.4)
-                            idx = curIdx + 1
-                            continue
-                        end
-                    end
-                end
                 local targetCF = CFrame.new(data.part.Position.X, data.part.Position.Y + 3, data.part.Position.Z)
                 TweenTo(targetCF)
                 task.wait(1.2)
@@ -1235,15 +1106,22 @@ serverSection:Addtoggle({
     value = true,
     callback = function(state)
         getgenv().AutoReconnectEnabled = state
-        pcall(function()
-            if writefile then
-                writefile("renux_autoreconnect_toggle.json", HttpService:JSONEncode({ enabled = state }))
-            end
-        end)
         if state then
             EnableAutoReconnect()
         else
             DisableAutoReconnect()
         end
+    end
+})
+serverSection:Addbutton({
+    title = "rejoin",
+    callback = function()
+        Rejoin()
+    end
+})
+serverSection:Addbutton({
+    title = "server hop",
+    callback = function()
+        ServerHop()
     end
 })
