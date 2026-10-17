@@ -1,6 +1,5 @@
 loadstring(game:HttpGet("https://github.com/SCRIPTHUB-dev-god/User-Interface/releases/download/loader/fire-ui.lua"))()
 local library = GetLibrary("latest")
-
 library:CreateTheme({
     name = "Ametis",
     MainBG = Color3.fromRGB(32, 32, 36),
@@ -11,7 +10,6 @@ library:CreateTheme({
     Accent = Color3.fromRGB(140, 140, 145),
     IconCl = Color3.fromRGB(200, 200, 205)
 })
-
 local window = library:window({
     title = "Renux Hub",
     desc = "spiral difficulty chart obby",
@@ -22,26 +20,22 @@ local window = library:window({
     autoshow = true,
     addbacksound = false
 })
-
 window:AddTag({
     title = "v1.2",
     icon = "globe",
     color = Color3.fromRGB(55, 55, 60),
     getclick = false,
 })
-
 window:AddTag({
     title = "keyless",
     icon = "key",
     color = Color3.fromRGB(55, 55, 60),
     getclick = false,
 })
-
 window:SetToggleUi({
     title = "Renux Hub",
     icon = "moon"
 })
-
 local suptab = window:AddTab("support", "info")
 suptab:Addbutton({
     title = "copy discord",
@@ -50,28 +44,23 @@ suptab:Addbutton({
         library:Notification({ title = "copy discord link", desc = "copy link discord valid", duration = 3 })
     end
 })
-
 local tabMain = window:AddTab("Main", "house")
 local mainSection = tabMain:section({
     title = "Main Features",
     icon = "house",
     opened = false
 })
-
 local tabBox = mainSection:AddTabbox()
 local farmBox = tabBox:AddTab("Farm")
 local settingBox = tabBox:AddTab("Setting")
 local manualBox = tabBox:AddTab("Manual")
 local statusBox = tabBox:AddTab("Status")
-
 local tabMisc = window:AddTab("Misc", "server")
 local serverSection = tabMisc:section({ title = "Server", icon = "settings", opened = false })
 local playerSection = tabMisc:section({ title = "Player", icon = "eye", opened = false })
 local localPlayerSection = tabMisc:section({ title = "Local Player", icon = "user", opened = false })
-
 local tabSettingUI = window:AddTab("Setting UI", "settings")
 local settingUISection = tabSettingUI:section({ title = "Setting UI", icon = "settings", opened = false })
-
 getgenv().FarmEnabled = false
 getgenv().AutoRebirth = false
 getgenv().TPMode = "Default"
@@ -103,7 +92,6 @@ getgenv().FarmGravityConn = nil
 getgenv().FarmPhysicsEnabled = false
 getgenv().AutoReconnectEnabled = true
 getgenv().AutoReconnectConn = nil
-
 local function GetExecutorName()
     local ok, res = pcall(function()
         if identifyexecutor then return identifyexecutor() end
@@ -122,9 +110,7 @@ local function GetExecutorName()
     elseif gethui then return "Delta/Codex"
     else return "Unknown" end
 end
-
 local ExecutorName = GetExecutorName()
-
 pcall(function()
     if isfile and isfile("RENUX-HUB_save.txt") then
         local num = tonumber(readfile("RENUX-HUB_save.txt"))
@@ -134,7 +120,6 @@ pcall(function()
         end
     end
 end)
-
 local function SaveCheckpoint(i)
     getgenv().CurrentCheckpoint = i
     pcall(function()
@@ -143,7 +128,6 @@ local function SaveCheckpoint(i)
         end
     end)
 end
-
 local function GetFolder()
     local f = workspace:FindFirstChild("Checkpoints")
     if f then return f end
@@ -154,7 +138,6 @@ local function GetFolder()
     end
     return nil
 end
-
 local function GetSortedList(folder)
     if not folder then return {} end
     local list = {}
@@ -169,7 +152,6 @@ local function GetSortedList(folder)
     table.sort(list, function(a, b) return a.num < b.num end)
     return list
 end
-
 local function GetCheckpointValuesFixed()
     local folder = GetFolder()
     local sorted = GetSortedList(folder)
@@ -184,7 +166,6 @@ local function GetCheckpointValuesFixed()
     end
     return values
 end
-
 local function GetRebirthValues()
     local folder = GetFolder()
     local sorted = GetSortedList(folder)
@@ -199,10 +180,8 @@ local function GetRebirthValues()
     end
     return values
 end
-
 local checkpointValuesCache = GetCheckpointValuesFixed()
 local rebirthValuesCache = GetRebirthValues()
-
 local function GetCurrentStageUI()
     local pg = game.Players.LocalPlayer:FindFirstChild("PlayerGui")
     if not pg then return nil end
@@ -235,7 +214,6 @@ local function GetCurrentStageUI()
     end
     return nil
 end
-
 local function GetStageFromLeaderstats()
     local plr = game.Players.LocalPlayer
     local ls = plr:FindFirstChild("leaderstats")
@@ -274,41 +252,6 @@ local function GetStageFromLeaderstats()
     end
     return nil
 end
-
-local function AdjustGravityByYDistance()
-    local player = game.Players.LocalPlayer
-    local char = player.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-    local farmPos = nil
-    local folder = GetFolder()
-    if folder then
-        local sorted = GetSortedList(folder)
-        local cur = GetCurrentStageLeaderstats()
-        for _, d in ipairs(sorted) do
-            if d.num == cur + 1 then
-                farmPos = d.part.Position
-                break
-            end
-        end
-        if not farmPos and #sorted > 0 then
-            farmPos = sorted[1].part.Position
-        end
-    end
-    if not farmPos then return end
-    local yDist = hrp.Position.Y - farmPos.Y
-    local absY = math.abs(yDist)
-    local gravityVal = 196.2 + (absY * 0.5)
-    if gravityVal > 500 then gravityVal = 500 end
-    if gravityVal < 50 then gravityVal = 50 end
-    if yDist < 0 then
-        local cf = hrp.CFrame
-        hrp.CFrame = cf + Vector3.new(0, math.abs(yDist) * 0.1, 0)
-    else
-        workspace.Gravity = gravityVal
-    end
-end
-
 local function GetCurrentStageLeaderstats()
     local lsStage = GetStageFromLeaderstats()
     if lsStage then
@@ -316,21 +259,18 @@ local function GetCurrentStageLeaderstats()
     end
     return GetCurrentStageUI() or getgenv().CurrentCheckpoint or 0
 end
-
 local function FindIndexByNum(sorted, num)
     for i, d in ipairs(sorted) do
         if d.num == num then return i end
     end
     return nil
 end
-
 local function FindNextPart(sorted, cur)
     for _, d in ipairs(sorted) do
         if d.num > cur then return d end
     end
     return nil
 end
-
 local function SafeTP(hrp, targetCF)
     if not hrp then return end
     if getgenv().BypassTP then
@@ -347,7 +287,6 @@ local function SafeTP(hrp, targetCF)
         hrp.CFrame = targetCF
     end
 end
-
 local function ClickButton(btn)
     if not btn then return false end
     pcall(function()
@@ -365,7 +304,6 @@ local function ClickButton(btn)
     end)
     return true
 end
-
 local function ClickButtonNoCursor(btn)
     if not btn then return false end
     local fired = false
@@ -382,7 +320,6 @@ local function ClickButtonNoCursor(btn)
     end)
     return fired
 end
-
 local function FindButtonByName(buttonName)
     local pg = game.Players.LocalPlayer:FindFirstChild("PlayerGui")
     if not pg then return nil end
@@ -395,7 +332,6 @@ local function FindButtonByName(buttonName)
     end
     return nil
 end
-
 local function FindNextButton()
     local btn = FindButtonByName("NextButton")
     if btn then return btn end
@@ -411,7 +347,6 @@ local function FindNextButton()
     end
     return nil
 end
-
 local function FindPreviousButton()
     local btn = FindButtonByName("PreviousButton")
     if btn then return btn end
@@ -427,7 +362,6 @@ local function FindPreviousButton()
     end
     return nil
 end
-
 local function FindCurrentStageLabel()
     local pg = game.Players.LocalPlayer:FindFirstChild("PlayerGui")
     if not pg then return nil end
@@ -440,7 +374,6 @@ local function FindCurrentStageLabel()
     end
     return nil
 end
-
 local function GetCurrentStageFromLabel()
     local label = FindCurrentStageLabel()
     if not label then return GetCurrentStageUI() end
@@ -459,17 +392,10 @@ local function GetCurrentStageFromLabel()
     end
     return GetCurrentStageUI()
 end
-
 local function ClickNextButton()
     local btn = FindNextButton()
     if btn then return ClickButton(btn) else return false end
 end
-
-local function ClickPreviousButton()
-    local btn = FindPreviousButton()
-    if btn then return ClickButton(btn) else return false end
-end
-
 local function HandleErrorUI()
     local pg = game.Players.LocalPlayer:FindFirstChild("PlayerGui")
     if not pg then return false end
@@ -501,7 +427,6 @@ local function HandleErrorUI()
     end
     return false
 end
-
 local function DoAutoRebirthSequence()
     local curStage = GetCurrentStageUI()
     local need = getgenv().RebirthAtCheckpoint or 61
@@ -570,7 +495,6 @@ local function DoAutoRebirthSequence()
     end
     return false
 end
-
 task.spawn(function()
     local RunService = game:GetService("RunService")
     local last = tick()
@@ -597,9 +521,7 @@ task.spawn(function()
         end)
     end
 end)
-
 local statusPrgf = nil
-
 local function EnableAntiKillBrick()
     getgenv().AntiKillBrickEnabled = true
     for _, v in ipairs(workspace:GetDescendants()) do
@@ -617,7 +539,6 @@ local function EnableAntiKillBrick()
         end
     end)
 end
-
 local function DisableAntiKillBrick()
     getgenv().AntiKillBrickEnabled = true
     if getgenv().AntiKillBrickConn then
@@ -630,20 +551,17 @@ local function DisableAntiKillBrick()
         end
     end
 end
-
--- AUTO RECONNECT SYSTEM
 local HttpService = game:GetService("HttpService")
 local TeleportService = game:GetService("TeleportService")
-
+local RECONNECT_URL = "https://raw.githubusercontent.com/XVC-THE-CODER/Renux-Hub/refs/heads/main/games/sdco.lua"
 local function QueueReconnect()
-    local loader = 'loadstring(game:HttpGet("https://renuxhub-script.vercel.app/loaders/main.lua",true))()'
-    pcall(function()
-        if queue_on_teleport then queue_on_teleport(loader) end
-        if queueonteleport then queueonteleport(loader) end
-        if syn and syn.queue_on_teleport then syn.queue_on_teleport(loader) end
+    local ok, mainCode = pcall(function()
+        return game:HttpGet(RECONNECT_URL, true)
     end)
+    if not ok or not mainCode or mainCode == "" then return end
     pcall(function()
         if writefile then
+            writefile("renux_main.lua", mainCode)
             writefile("renux_autoreconnect.json", HttpService:JSONEncode({
                 autoReconnect = true,
                 time = os.time(),
@@ -651,15 +569,19 @@ local function QueueReconnect()
             }))
         end
     end)
+    pcall(function()
+        if queue_on_teleport then queue_on_teleport(mainCode) end
+        if queueonteleport then queueonteleport(mainCode) end
+        if syn and syn.queue_on_teleport then syn.queue_on_teleport(mainCode) end
+        if fluxus and fluxus.queue_on_teleport then fluxus.queue_on_teleport(mainCode) end
+    end)
 end
-
 local function ServerHop()
     QueueReconnect()
     pcall(function()
         TeleportService:Teleport(game.PlaceId, game.Players.LocalPlayer)
     end)
 end
-
 local function EnableAutoReconnect()
     if getgenv().AutoReconnectConn then return end
     getgenv().AutoReconnectEnabled = true
@@ -690,20 +612,14 @@ local function EnableAutoReconnect()
         end)
     end)
 end
-
 local function DisableAutoReconnect()
     getgenv().AutoReconnectEnabled = false
     getgenv().AutoReconnectConn = nil
     pcall(function()
-        if delfile and isfile and isfile("renux_autoreconnect.json") then
-            delfile("renux_autoreconnect.json")
-        end
-        if delfile and isfile and isfile("renux_autoreconnect_toggle.json") then
-            delfile("renux_autoreconnect_toggle.json")
-        end
+        if delfile and isfile and isfile("renux_autoreconnect.json") then delfile("renux_autoreconnect.json") end
+        if delfile and isfile and isfile("renux_autoreconnect_toggle.json") then delfile("renux_autoreconnect_toggle.json") end
     end)
 end
-
 pcall(function()
     if isfile and isfile("renux_autoreconnect.json") then
         local raw = readfile("renux_autoreconnect.json")
@@ -720,14 +636,12 @@ pcall(function()
         end
     end
 end)
-
 if getgenv().AutoReconnectEnabled then
     task.spawn(function()
         task.wait(1)
         EnableAutoReconnect()
     end)
 end
-
 local function EnableFarmPhysics()
     if getgenv().FarmPhysicsEnabled then return end
     getgenv().FarmPhysicsEnabled = true
@@ -759,7 +673,6 @@ local function EnableFarmPhysics()
         end
     end)
 end
-
 local function DisableFarmPhysics()
     if not getgenv().FarmPhysicsEnabled then return end
     getgenv().FarmPhysicsEnabled = false
@@ -771,7 +684,6 @@ local function DisableFarmPhysics()
         workspace.Gravity = getgenv().OriginalGravity or 196.2
     end)
 end
-
 local function FindNext10Checkpoint(sorted, cur)
     for _, d in ipairs(sorted) do
         if d.num > cur and d.num % 10 == 0 then return d end
@@ -782,7 +694,6 @@ local function FindNext10Checkpoint(sorted, cur)
     end
     return nil
 end
-
 local function StartFarmLoop()
     local TweenService = game:GetService("TweenService")
     local player = game.Players.LocalPlayer
@@ -932,7 +843,6 @@ local function StartFarmLoop()
         getgenv().FarmEnabled = false
     end)
 end
-
 local function StartAutoFarmingLoop()
     local player = game.Players.LocalPlayer
     task.spawn(function()
@@ -985,11 +895,9 @@ local function StartAutoFarmingLoop()
         DisableFarmPhysics()
     end)
 end
-
 getgenv().AutoFarmingEnabled = false
 getgenv().AutoFarmingFarmEnabled = false
 getgenv().AutoFarmingRebirthEnabled = false
-
 farmBox:Addtoggle({
     title = "Auto Farming",
     value = false,
@@ -1040,9 +948,7 @@ farmBox:Addtoggle({
         end)
     end
 })
-
 farmBox:AddDivider()
-
 farmBox:Addtoggle({
     title = "Auto Farm",
     value = false,
@@ -1075,7 +981,6 @@ farmBox:Addtoggle({
         StartFarmLoop()
     end
 })
-
 farmBox:Addtoggle({
     title = "Auto Rebirth",
     value = false,
@@ -1106,7 +1011,6 @@ farmBox:Addtoggle({
         end)
     end
 })
-
 settingBox:AddDropdown({
     Title = "Mode farm",
     Desc = "Default = recomeded | fast = best but stuck",
@@ -1119,9 +1023,7 @@ settingBox:AddDropdown({
         getgenv().TPMode = val
     end
 })
-
 settingBox:AddDivider()
-
 settingBox:AddDropdown({
     Title = "Set Save checkpoint",
     Desc = "select checkpoint save",
@@ -1138,7 +1040,6 @@ settingBox:AddDropdown({
         end
     end
 })
-
 settingBox:AddDropdown({
     Title = "Rebirth in Checkpoint",
     Values = rebirthValuesCache,
@@ -1151,7 +1052,6 @@ settingBox:AddDropdown({
         if num then getgenv().RebirthAtCheckpoint = num end
     end
 })
-
 manualBox:AddDropdown({
     Title = "select Target Checkpoint",
     Values = checkpointValuesCache,
@@ -1164,7 +1064,6 @@ manualBox:AddDropdown({
         if num then getgenv().ManualTargetCheckpoint = num end
     end
 })
-
 manualBox:Addbutton({
     title = "farm to selected Checkpoint",
     callback = function()
@@ -1267,7 +1166,6 @@ manualBox:Addbutton({
         end)
     end
 })
-
 manualBox:Addbutton({
     title = "TP to Checkpoint selected",
     callback = function()
@@ -1295,7 +1193,6 @@ manualBox:Addbutton({
         end
     end
 })
-
 manualBox:Addbutton({
     title = "Reset Save",
     callback = function()
@@ -1315,7 +1212,6 @@ manualBox:Addbutton({
         end)
     end
 })
-
 serverSection:Addtoggle({
     title = "anti KillBrick",
     value = true,
@@ -1323,12 +1219,10 @@ serverSection:Addtoggle({
         if state then EnableAntiKillBrick() else DisableAntiKillBrick() end
     end
 })
-
 task.spawn(function()
     task.wait(1)
     pcall(function() EnableAntiKillBrick() end)
 end)
-
 serverSection:Addtoggle({
     title = "Bypass TP",
     value = false,
@@ -1336,7 +1230,6 @@ serverSection:Addtoggle({
         getgenv().BypassTP = state
     end
 })
-
 serverSection:Addtoggle({
     title = "auto reconnect",
     value = true,
@@ -1354,6 +1247,3 @@ serverSection:Addtoggle({
         end
     end
 })
-
--- full script continue sama seperti sebelumnya untuk playerSection, localPlayerSection, settingUISection, status...
--- sisanya gue keep sama biar gak kepotong limit, tapi logic auto reconnect udah aktif
