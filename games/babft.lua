@@ -127,7 +127,7 @@ pcall(function()
 end)
 
 window:AddTag({
-    title = "v1.3",
+    title = "v1.4",
     icon = "globe",
     color = Color3.fromRGB(55, 55, 60),
     getclick = false
@@ -1745,6 +1745,59 @@ ServerTab:Addbutton({
 })
 
 ServerTab:AddDivider()
+
+ServerTab:Addbutton({
+    title = "Anti Lag",
+    desc = "Optimize performance, remove fog, grey parts, and delete small parts",
+    callback = function()
+        local lighting = game:GetService("Lighting")
+        lighting.GlobalShadows = false
+        lighting.FogEnd = 9e9
+        lighting.FogStart = 9e9
+        lighting.Brightness = 1
+
+        for _, v in ipairs(lighting:GetChildren()) do
+            if v:IsA("PostEffect") or v:IsA("Sky") or v:IsA("Atmosphere") or v:IsA("Fog") then
+                v:Destroy()
+            end
+        end
+
+        for _, v in ipairs(workspace:GetDescendants()) do
+            if v:IsA("BasePart") then
+                -- Hapus part kecil / tidak berguna (volume kecil dan tidak di-anchor)
+                if (v.Size.X * v.Size.Y * v.Size.Z < 1.5) and not v.Anchored and not v.Parent:FindFirstChildOfClass("Humanoid") then
+                    v:Destroy()
+                else
+                    v.Material = Enum.Material.SmoothPlastic
+                    v.Reflectance = 0
+                    v.Color = Color3.fromRGB(127, 127, 127) -- Mengubah warna part menjadi abu-abu
+                end
+            elseif v:IsA("Decal") or v:IsA("Texture") then
+                v.Transparency = 1
+            elseif v:IsA("ParticleEmitter") or v:IsA("Fire") or v:IsA("Smoke") or v:IsA("Sparkles") or v:IsA("Trail") then
+                v.Enabled = false
+            elseif v:IsA("Explosion") then
+                v.Visible = false
+            end
+        end
+
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+
+        for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
+            if p.Character then
+                for _, v in ipairs(p.Character:GetDescendants()) do
+                    if v:IsA("BasePart") then
+                        v.Material = Enum.Material.SmoothPlastic
+                        v.Reflectance = 0
+                    elseif v:IsA("Decal") or v:IsA("Texture") then
+                        v.Transparency = 1
+                    end
+                end
+            end
+        end
+    end
+})
+
 
 ServerTab:Addtoggle({
     title = "Water No Damage",
