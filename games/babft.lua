@@ -215,6 +215,11 @@ local flyConn = nil
 local flyCtrl = nil
 local flySaved = {}
 
+local noclipEnabled = false
+local noclipConn = nil
+local infiniteJumpEnabled = false
+local jumpConnection = nil
+
 local function applyMovement()
     pcall(function()
         if freecamEnabled then
@@ -1590,6 +1595,71 @@ local function startFarmGoldBlock()
     end)
 end
 
+local function enableNoclip()
+    if noclipConn then
+        noclipConn:Disconnect()
+    end
+    
+    noclipConn = RunService.Stepped:Connect(function()
+        if not noclipEnabled then return end
+        
+        local character = player.Character
+        if character then
+            for _, part in ipairs(character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                end
+            end
+        end
+    end)
+end
+
+local function disableNoclip()
+    if noclipConn then
+        noclipConn:Disconnect()
+        noclipConn = nil
+    end
+    
+    local character = player.Character
+    if character then
+        for _, part in ipairs(character:GetDescendants()) do
+            if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+                if part.Parent and part.Parent:IsA("Accessory") then
+                    part.CanCollide = false
+                elseif part.Name ~= "HumanoidRootPart" then
+                    part.CanCollide = true
+                end
+            end
+        end
+    end
+end
+
+local function enableInfiniteJump()
+    if jumpConnection then
+        jumpConnection:Disconnect()
+    end
+    jumpConnection = UserInputService.JumpRequest:Connect(function()
+        if infiniteJumpEnabled then
+            local character = player.Character
+            if character then
+                local humanoid = character:FindFirstChildOfClass("Humanoid")
+                local rootPart = character:FindFirstChild("HumanoidRootPart")
+                if humanoid and rootPart then
+                    humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                    rootPart.AssemblyLinearVelocity = Vector3.new(rootPart.AssemblyLinearVelocity.X, humanoid.JumpPower, rootPart.AssemblyLinearVelocity.Z)
+                end
+            end
+        end
+    end)
+end
+
+local function disableInfiniteJump()
+    if jumpConnection then
+        jumpConnection:Disconnect()
+        jumpConnection = nil
+    end
+end
+
 local function joindc()
     local invite = "https://discord.gg/dbE59H6grJ"
 
@@ -1986,6 +2056,36 @@ MiscTab:AddSlider({
     Value = {Min = 1, Max = 100, Default = 25},
     Callback = function(value)
         flySpeed = value
+    end
+})
+
+MiscTab:AddDivider()
+
+MiscTab:Addtoggle({
+    title = "Noclip",
+    value = false,
+    callback = function(state)
+        noclipEnabled = state
+
+        if state then
+            enableNoclip()
+        else
+            disableNoclip()
+        end
+    end
+})
+
+MiscTab:Addtoggle({
+    title = "infinite jump",
+    value = false,
+    callback = function(state)
+        infiniteJumpEnabled = state
+
+        if state then
+            enableInfiniteJump()
+        else
+            disableInfiniteJump()
+        end
     end
 })
 
