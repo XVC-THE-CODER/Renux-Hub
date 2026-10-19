@@ -17,7 +17,6 @@ local window = library:window({
     desc = "spiral difficulty chart obby",
     transparent = 0.25,
     icon = "moon",
-    CanAutoSave = true,
     theme = "Ametis",
     fileName = "RENUX-HUB_save",
     autoshow = true,
@@ -102,6 +101,16 @@ getgenv().AntiKillBrickConn = nil
 getgenv().OriginalGravity = workspace.Gravity
 getgenv().FarmGravityConn = nil
 getgenv().FarmPhysicsEnabled = false
+
+local Players = game:GetService("Players")
+
+Players.LocalPlayer.Idled:Connect(function()
+    local VirtualUser = game:GetService("VirtualUser")
+    VirtualUser:CaptureController()
+    VirtualUser:Button2Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+    task.wait(1)
+    VirtualUser:Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+end)
 
 local function GetExecutorName()
     local ok, res = pcall(function()
@@ -1533,7 +1542,7 @@ local function SetSelectedStageValue(targetCheckpoint)
             selectedStageObj = myselfFolder:FindFirstChild("SelectedStage")
         end
     end
-    
+
     if selectedStageObj then
         local newVal = targetCheckpoint - 1
         pcall(function()
@@ -1550,7 +1559,7 @@ local function ScannerWorkspaceNearPlayer(playerName)
     if not plr or not plr.Character then return nil end
     local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
     if not hrp then return nil end
-    
+
     local nearestNum, nearestPart = GetNearestCheckpointForPlayer(playerName)
     if nearestNum and nearestPart then
         return nearestNum, nearestPart
