@@ -153,6 +153,7 @@ local settTab = window:AddTab("setting", "settings")
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
+local virtualUser = game:GetService("VirtualUser")
 local RunService = game:GetService("RunService")
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
@@ -1659,6 +1660,13 @@ local function disableInfiniteJump()
         jumpConnection = nil
     end
 end
+
+player.Idled:Connect(function()
+    virtualUser:CaptureController()
+    virtualUser:Button2Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+    task.wait(1)
+    virtualUser:Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+end)
 
 local function joindc()
     local invite = "https://discord.gg/dbE59H6grJ"
