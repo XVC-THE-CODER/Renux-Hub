@@ -3,7 +3,7 @@
 loadstring(game:HttpGet("https://raw.githubusercontent.com/XVC-THE-CODER/Renux-Hub/refs/heads/main/loader/main.lua",true))()
 ```
 ---
-**[game support](https://renuxhub-script.vercel.app/?tab=script/)**
+**[game support](https://renuxhub-script.vercel.app/?tab=script)**
 
 ---
 [need update]
