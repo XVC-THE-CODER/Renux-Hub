@@ -1,15 +1,10 @@
 # Renux hub
 ```luau
-loadstring(game:HttpGet("https://github.com/XVC-THE-CODER/Renux-Hub/releases/latest/download/loaders.lua",true))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/XVC-THE-CODER/Renux-Hub/refs/heads/main/loader/main.lua",true))()
 ```
 ---
-**game support**
-[working]
-- build a boat for treasures (v1.2)
-- gun ground ffa (v1.0)
-- one tap (v1.0)
-- hide and seek extreme (v1.2)
-- murder mystery 2 (v1.4)
+**[game support](https://renuxhub-script.vercel.app/?tab=script/)**
+
 ---
 [need update]
 - nothing 
