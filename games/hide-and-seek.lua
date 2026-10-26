@@ -340,7 +340,7 @@ Library:Notify({ Title = "Renux Hub", Description = "Script loaded in game: " ..
 Library:SetWatermarkVisibility(true)
 Library:SetWatermark("Renux Hub | " .. version)
 
-local main1 = Tab:AddLeftGroupbox("info", "bell")
+local main = Tab:AddLeftGroupbox("info", "bell")
 local seGroupBox = Tab:AddRightGroupbox("credits", "clipboard")
 local main1 = Tab1:AddLeftGroupbox("Main", "house")
 local main2 = Tab1:AddRightGroupbox("Farm", "zap")
@@ -348,28 +348,16 @@ local tabmain1 = Tab2:AddLeftGroupbox("Movement", "user")
 local tabmain2 = Tab2:AddRightGroupbox("ESP", "eye")
 local setGroupBox = SettingTab:AddLeftGroupbox("Setting", "settings")
 
+main:AddButton({
+    Text = "join discord",
+    Func = function()
+        (setclipboard or toclipboard)("https://discord.gg/mXnTVYYYsy")
+        Library:Notify("link discord has copy", 3)
+    end
+})
 local MyToggle = main1:AddToggle("MyToggle", { Text = "Enable Main Script", Default = false })
 local Box = main1:AddDependencyBox()
 Box:AddDivider()
-
-Box:AddToggle("Noclip", { Text = "Noclip", Default = false, Callback = function(Value)
-    if Value then
-        NoclipConn = RunService.Stepped:Connect(function()
-            if Player.Character then
-                for _, v in pairs(Player.Character:GetDescendants()) do
-                    if v:IsA("BasePart") and v.CanCollide == true then
-                        v.CanCollide = false
-                    end
-                end
-            end
-        end)
-    else
-        if NoclipConn then
-            NoclipConn:Disconnect()
-            NoclipConn = nil
-        end
-    end
-end })
 
 Box:AddInput("AvoidRadiusInput", { Text = "Avoid IT Radius", Default = "15", Numeric = true, Finished = false, ClearTextOnFocus = true, Callback = function(Value)
     local n = tonumber(Value)
@@ -406,6 +394,25 @@ Box:AddToggle("AvoidIt", { Text = "Avoid IT", Default = false, Callback = functi
                 task.wait(0.05)
             end
         end)
+    end
+end })
+
+Box:AddToggle("Noclip", { Text = "Noclip", Default = false, Callback = function(Value)
+    if Value then
+        NoclipConn = RunService.Stepped:Connect(function()
+            if Player.Character then
+                for _, v in pairs(Player.Character:GetDescendants()) do
+                    if v:IsA("BasePart") and v.CanCollide == true then
+                        v.CanCollide = false
+                    end
+                end
+            end
+        end)
+    else
+        if NoclipConn then
+            NoclipConn:Disconnect()
+            NoclipConn = nil
+        end
     end
 end })
 
@@ -922,7 +929,6 @@ tabmain1:AddToggle("WalkSpeedToggle", { Text = "WalkSpeed Enable", Default = fal
         if OriginalChar then RestoreWS(OriginalChar) end
     end
 end })
-tabmain1:AddInput("WalkSpeedInput", { Default = "16", Numeric = true, Finished = false, ClearTextOnFocus = true, Text = "WalkSpeed Value", Callback = function(Value) local n = tonumber(Value) if n then WalkSpeedValue = n end end })
 tabmain1:AddToggle("JumpPowerToggle", { Text = "JumpPower Enable", Default = false, Callback = function(Value)
     if Value then
         local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
@@ -943,6 +949,7 @@ tabmain1:AddToggle("JumpPowerToggle", { Text = "JumpPower Enable", Default = fal
         if OriginalChar then RestoreJP(OriginalChar) end
     end
 end })
+tabmain1:AddInput("WalkSpeedInput", { Default = "16", Numeric = true, Finished = false, ClearTextOnFocus = true, Text = "WalkSpeed Value", Callback = function(Value) local n = tonumber(Value) if n then WalkSpeedValue = n end end })
 tabmain1:AddInput("JumpPowerInput", { Default = "50", Numeric = true, Finished = false, ClearTextOnFocus = true, Text = "JumpPower Value", Callback = function(Value) local n = tonumber(Value) if n then JumpPowerValue = n end end })
 
 tabmain2:AddToggle("ESPAllPlayers", { Text = "ESP Player", Default = false, Callback = function(Value)
