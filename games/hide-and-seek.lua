@@ -5,8 +5,10 @@ local Workspace = game:GetService("Workspace")
 local UserInputService = game:GetService("UserInputService")
 local TeleportService = game:GetService("TeleportService")
 local TweenService = game:GetService("TweenService")
+local Lighting = game:GetService("Lighting")
 local Player = Players.LocalPlayer
 
+local success_load = "script has 100% loaded"
 local gamename = "Unknown"
 local version = "version: 1.3"
 local success, info = pcall(function() return MarketplaceService:GetProductInfo(game.PlaceId) end)
@@ -62,6 +64,7 @@ local NoclipConn = nil
 local XRayEnabled = nil
 local OriginalTransparencies = {}
 
+local InvisiblePart = nil
 local CloneChar = nil
 local OriginalChar = nil
 local InvisLoopConn = nil
@@ -85,6 +88,9 @@ local JumpPowerEnabled = nil
 local JumpPowerValue = 50
 local SavedWalkSpeed = 16
 local SavedJumpPower = 50
+
+local isEnabled = false
+local oldSettings = {}
 
 local VisitedCredits = {}
 local CreditTweenEnabled = nil
@@ -201,11 +207,11 @@ local function IsPlayerIt(p)
     if not p or not p.Character then return false end
     local char = p.Character
     local v1 = false
-    if char:FindFirstChild("Glue") or char:FindFirstChild("Sprint") then
+    if char:FindFirstChild("Glue") or char:FindFirstChild("Sprint") or char:FindFirstChild("Place Camera")then
         v1 = true
     else
         for _, v in ipairs(char:GetDescendants()) do
-            if v.Name == "Glue" or v.Name == "Sprint" then
+            if v.Name == "Glue" or v.Name == "Sprint" or v.Name == "Place Camera" then
                 v1 = true
                 break
             end
@@ -311,7 +317,7 @@ end)
 local Window = Library:CreateWindow({
     Title = "Renux Hub",
     Footer = "executor: " .. currentExecutor .. " / " .. version .. " / game: " .. gamename,
-    Icon = "zap",
+    Icon = "flame",
     NotifySide = "Right",
     AutoShow = false,
     Animations = { ToggleWindow = true, TabSwitch = true, Groupbox = true },
@@ -320,7 +326,7 @@ local Window = Library:CreateWindow({
     TabSwipeFrom = "top",
 })
 
-local Tab = Window:AddTab({ Name = "info", Description = "info script", Icon = "bell" })
+local Tab = Window:AddTab({ Name = "info", Description = "side information", Icon = "bell" })
 local Tab1 = Window:AddTab({ Name = "Main", Description = "Main features", Icon = "house" })
 local Tab2 = Window:AddTab({ Name = "Misc", Description = "Other features", Icon = "between-horizontal-end" })
 local SettingTab = Window:AddTab("Setting", "settings")
@@ -340,13 +346,16 @@ Library:Notify({ Title = "Renux Hub", Description = "Script loaded in game: " ..
 Library:SetWatermarkVisibility(true)
 Library:SetWatermark("Renux Hub | " .. version)
 
-local main = Tab:AddLeftGroupbox("info", "bell")
-local seGroupBox = Tab:AddRightGroupbox("credits", "clipboard")
+local main = Tab:AddLeftGroupbox("support", "bell")
+local setGB = Tab:AddLeftGroupbox("credits", "clipboard")
+local seGroupBox = Tab:AddRightGroupbox("logs update", "clipboard")
 local main1 = Tab1:AddLeftGroupbox("Main", "house")
 local main2 = Tab1:AddRightGroupbox("Farm", "zap")
 local tabmain1 = Tab2:AddLeftGroupbox("Movement", "user")
 local tabmain2 = Tab2:AddRightGroupbox("ESP", "eye")
+local tabmain3 = Tab2:AddRightGroupbox("Server", "server")
 local setGroupBox = SettingTab:AddLeftGroupbox("Setting", "settings")
+local setGroupBox2 = SettingTab:AddRightGroupbox("Server", "settings")
 
 main:AddButton({
     Text = "join discord",
@@ -355,6 +364,7 @@ main:AddButton({
         Library:Notify("link discord has copy", 3)
     end
 })
+
 local MyToggle = main1:AddToggle("MyToggle", { Text = "Enable Main Script", Default = false })
 local Box = main1:AddDependencyBox()
 Box:AddDivider()
@@ -415,6 +425,7 @@ Box:AddToggle("Noclip", { Text = "Noclip", Default = false, Callback = function(
         end
     end
 end })
+
 
 Box:AddToggle("XRay", { Text = "X-Ray", Default = false, Callback = function(Value)
     XRayEnabled = Value
@@ -480,14 +491,84 @@ Box:AddToggle("XRay", { Text = "X-Ray", Default = false, Callback = function(Val
 end })
 
 Box:AddToggle("Invisible", { Text = "Invisible", Default = false, Callback = function(Value)
+    local function ToggleInvisible(value)
+        if value then
+            if not Player.Character or not Player.Character:FindFirstChild("HumanoidRootPart") then return end
+            OriginalChar = Player.Character
+            local savedCF = OriginalChar.HumanoidRootPart.CFrame
+            if InvisiblePart then InvisiblePart:Destroy() end
+            InvisiblePart = Instance.new("Part")
+            InvisiblePart.Name = "RenuxAnchor"
+            InvisiblePart.Size = Vector3.new(10, 1, 10)
+            InvisiblePart.Position = Vector3.new(0, 10000, 0)
+            InvisiblePart.Anchored = true
+            InvisiblePart.CanCollide = true
+            InvisiblePart.Transparency = 1
+            InvisiblePart.Parent = Workspace
+            OriginalChar.Archivable = true
+            CloneChar = OriginalChar:Clone()
+            CloneChar.Name = Player.Name .. "_Clone"
+            CloneChar.Parent = Workspace
+            for _, v in pairs(CloneChar:GetDescendants()) do
+                if v:IsA("BasePart") then
+                    v.Transparency = (v.Name ~= "HumanoidRootPart") and 0.75 or 1
+                    v.CanCollide = true
+                    v.Anchored = false
+                elseif v:IsA("Decal") then
+                    v.Transparency = 0.75
+                end
+            end
+            if CloneChar:FindFirstChild("HumanoidRootPart") then
+                CloneChar.HumanoidRootPart.CFrame = savedCF
+            end
+            if OriginalChar:FindFirstChild("HumanoidRootPart") then
+                OriginalChar.HumanoidRootPart.CFrame = CFrame.new(0, 10000, 0) + Vector3.new(0, 3, 0)
+                OriginalChar.HumanoidRootPart.Velocity = Vector3.new(0, 0, 0)
+            end
+            task.wait(0.1)
+            Player.Character = CloneChar
+            Workspace.CurrentCamera.CameraSubject = CloneChar:FindFirstChildOfClass("Humanoid")
+            if InvisLoopConn then InvisLoopConn:Disconnect() end
+            InvisLoopConn = RunService.Heartbeat:Connect(function()
+                pcall(function()
+                    if OriginalChar and OriginalChar:FindFirstChild("HumanoidRootPart") and InvisiblePart then
+                        OriginalChar.HumanoidRootPart.CFrame = InvisiblePart.CFrame + Vector3.new(0, 3, 0)
+                        OriginalChar.HumanoidRootPart.Velocity = Vector3.new(0, 0, 0)
+                    end
+                end)
+            end)
+        else
+            if InvisLoopConn then
+                InvisLoopConn:Disconnect()
+                InvisLoopConn = nil
+            end
+            if OriginalChar and CloneChar and CloneChar:FindFirstChild("HumanoidRootPart") then
+                local targetCF = CloneChar.HumanoidRootPart.CFrame
+                if OriginalChar:FindFirstChild("HumanoidRootPart") then
+                    OriginalChar.HumanoidRootPart.CFrame = targetCF
+                end
+                task.wait(0.1)
+                Player.Character = OriginalChar
+                Workspace.CurrentCamera.CameraSubject = OriginalChar:FindFirstChildOfClass("Humanoid")
+                task.wait(0.2)
+                if OriginalChar:FindFirstChild("HumanoidRootPart") then
+                    OriginalChar.HumanoidRootPart.CFrame = targetCF
+                end
+            end
+            if CloneChar then CloneChar:Destroy() CloneChar = nil end
+            if InvisiblePart then InvisiblePart:Destroy() InvisiblePart = nil end
+            OriginalChar = nil
+        end
+    end
+
     if Value then
         local gui = Instance.new("ScreenGui")
         gui.Name = "RenuxInvisibleUI"
         gui.ResetOnSpawn = false
         gui.Parent = Player:WaitForChild("PlayerGui")
         local frame = Instance.new("Frame")
-        frame.Size = UDim2.new(0, 200, 0, 60)
-        frame.Position = UDim2.new(0.5, -100, 0.5, -30)
+        frame.Size = UDim2.new(0, 140, 0, 50)
+        frame.Position = UDim2.new(0.5, -70, 0.5, -25)
         frame.BackgroundColor3 = Color3.fromRGB(55, 55, 60)
         frame.BackgroundTransparency = 0.25
         frame.Active = true
@@ -527,13 +608,13 @@ Box:AddToggle("Invisible", { Text = "Invisible", Default = false, Callback = fun
             end
         end)
         local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(0, 180, 0, 40)
+        btn.Size = UDim2.new(0, 120, 0, 30)
         btn.Position = UDim2.new(0, 10, 0, 10)
         btn.BackgroundColor3 = Color3.fromRGB(55, 55, 60)
         btn.BackgroundTransparency = 0.25
         btn.Text = "invisible : off"
         btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        btn.TextSize = 14
+        btn.TextSize = 12
         btn.Font = Enum.Font.Gotham
         btn.TextStrokeTransparency = 0.6
         btn.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
@@ -545,83 +626,26 @@ Box:AddToggle("Invisible", { Text = "Invisible", Default = false, Callback = fun
         s1.Color = Color3.fromRGB(255, 255, 255)
         s1.Thickness = 1
         s1.Parent = btn
-        local function EnableInvis()
-            if InvisibleActive then return end
-            if not Player.Character or not Player.Character:FindFirstChild("HumanoidRootPart") then return end
-            OriginalChar = Player.Character
-            local savedCF = OriginalChar.HumanoidRootPart.CFrame
-            OriginalChar.Archivable = true
-            CloneChar = OriginalChar:Clone()
-            CloneChar.Name = Player.Name .. "_Clone"
-            CloneChar.Parent = Workspace
-            for _, v in pairs(CloneChar:GetDescendants()) do
-                if v:IsA("BasePart") then
-                    v.Transparency = (v.Name ~= "HumanoidRootPart") and 0.75 or 1
-                    v.CanCollide = true
-                    v.Anchored = false
-                elseif v:IsA("Decal") then
-                    v.Transparency = 0.75
-                end
-            end
-            if CloneChar:FindFirstChild("HumanoidRootPart") then
-                CloneChar.HumanoidRootPart.CFrame = savedCF
-            end
-            if OriginalChar:FindFirstChild("HumanoidRootPart") then
-                OriginalChar.HumanoidRootPart.CFrame = CFrame.new(0, 10000, 0)
-                OriginalChar.HumanoidRootPart.Anchored = true
-            end
-            task.wait(0.1)
-            Player.Character = CloneChar
-            Workspace.CurrentCamera.CameraSubject = CloneChar:FindFirstChildOfClass("Humanoid")
-            if InvisLoopConn then InvisLoopConn:Disconnect() end
-            InvisLoopConn = RunService.Heartbeat:Connect(function()
-                pcall(function()
-                    if OriginalChar and OriginalChar:FindFirstChild("HumanoidRootPart") then
-                        OriginalChar.HumanoidRootPart.CFrame = CFrame.new(0, 10000, 0)
-                        OriginalChar.HumanoidRootPart.Velocity = Vector3.new(0, 0, 0)
-                    end
-                end)
-            end)
+        local function EnableOriginal()
+            ToggleInvisible(true)
             InvisibleActive = true
             btn.Text = "invisible : on"
         end
-        local function DisableInvis()
-            if not InvisibleActive then return end
-            if InvisLoopConn then
-                InvisLoopConn:Disconnect()
-                InvisLoopConn = nil
-            end
-            if OriginalChar then
-                pcall(function()
-                    if OriginalChar:FindFirstChild("HumanoidRootPart") then
-                        OriginalChar.HumanoidRootPart.Anchored = false
-                    end
-                end)
-            end
-            if OriginalChar and CloneChar and CloneChar:FindFirstChild("HumanoidRootPart") then
-                local targetCF = CloneChar.HumanoidRootPart.CFrame
-                if OriginalChar:FindFirstChild("HumanoidRootPart") then
-                    OriginalChar.HumanoidRootPart.CFrame = targetCF
-                end
-                task.wait(0.1)
-                Player.Character = OriginalChar
-                Workspace.CurrentCamera.CameraSubject = OriginalChar:FindFirstChildOfClass("Humanoid")
-                task.wait(0.2)
-                if OriginalChar:FindFirstChild("HumanoidRootPart") then
-                    OriginalChar.HumanoidRootPart.CFrame = targetCF
-                end
-            end
-            if CloneChar then CloneChar:Destroy() CloneChar = nil end
+        local function DisableOriginal()
+            ToggleInvisible(false)
             InvisibleActive = false
             btn.Text = "invisible : off"
         end
         btn.MouseButton1Click:Connect(function()
             if InvisibleActive then
-                DisableInvis()
+                DisableOriginal()
             else
-                EnableInvis()
+                EnableOriginal()
             end
         end)
+        ToggleInvisible(true)
+        InvisibleActive = true
+        btn.Text = "invisible : on"
     else
         pcall(function()
             local pg = Player:FindFirstChild("PlayerGui")
@@ -630,32 +654,7 @@ Box:AddToggle("Invisible", { Text = "Invisible", Default = false, Callback = fun
                 if g then g:Destroy() end
             end
         end)
-        if InvisLoopConn then
-            InvisLoopConn:Disconnect()
-            InvisLoopConn = nil
-        end
-        if OriginalChar then
-            pcall(function()
-                if OriginalChar:FindFirstChild("HumanoidRootPart") then
-                    OriginalChar.HumanoidRootPart.Anchored = false
-                end
-            end)
-        end
-        if OriginalChar and CloneChar and CloneChar:FindFirstChild("HumanoidRootPart") then
-            local targetCF = CloneChar.HumanoidRootPart.CFrame
-            if OriginalChar:FindFirstChild("HumanoidRootPart") then
-                OriginalChar.HumanoidRootPart.CFrame = targetCF
-            end
-            task.wait(0.1)
-            Player.Character = OriginalChar
-            Workspace.CurrentCamera.CameraSubject = OriginalChar:FindFirstChildOfClass("Humanoid")
-            task.wait(0.2)
-            if OriginalChar:FindFirstChild("HumanoidRootPart") then
-                OriginalChar.HumanoidRootPart.CFrame = targetCF
-            end
-        end
-        if CloneChar then CloneChar:Destroy() CloneChar = nil end
-        OriginalChar = nil
+        ToggleInvisible(false)
         InvisibleActive = false
     end
 end })
@@ -691,37 +690,6 @@ Box:AddToggle("InfiniteJump", { Text = "Infinite Jump", Default = false, Callbac
     end
 end })
 
-Box:AddToggle("AntiVoid", { Text = "Anti Void", Default = false, Callback = function(Value)
-    AntiVoidEnabled = Value
-    if Value then
-        AntiVoidThread = task.spawn(function()
-            while AntiVoidEnabled do
-                if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") and Player.Character:FindFirstChildOfClass("Humanoid") then
-                    local hrp = Player.Character.HumanoidRootPart
-                    local hum = Player.Character:FindFirstChildOfClass("Humanoid")
-                    local pos = hrp.Position
-                    if pos.Y <= -175 then
-                        if LastSavedCFrame then
-                            hrp.CFrame = LastSavedCFrame
-                            hrp.Velocity = Vector3.new(0, 0, 0)
-                        end
-                    else
-                        if hum.FloorMaterial ~= Enum.Material.Air then
-                            if not LastCheckPos or (pos - LastCheckPos).Magnitude > 0.1 then
-                                LastSavedCFrame = hrp.CFrame
-                                LastCheckPos = pos
-                            end
-                        end
-                    end
-                end
-                task.wait(0.1)
-            end
-        end)
-    else
-        AntiVoidEnabled = false
-    end
-end })
-
 local MasterTPToggle = main2:AddToggle("MasterTP", { Text = "Enable Farm", Default = false })
 local TPBox = main2:AddDependencyBox()
 TPBox:AddDivider()
@@ -753,7 +721,17 @@ TPBox:AddDropdown("BlacklistDropdown", {
     Default = {},
     Multi = true,
     Callback = function(Value)
-        BlacklistPlayers = Value
+        local newList = {}
+        if type(Value) == "table" then
+            for k, v in pairs(Value) do
+                if type(k) == "string" and v == true then
+                    newList[k] = true
+                elseif type(v) == "string" and v ~= "None" then
+                    newList[v] = true
+                end
+            end
+        end
+        BlacklistPlayers = newList
     end
 })
 
@@ -862,22 +840,26 @@ TPBox:AddToggle("CreditTween", { Text = "farm credit", Default = false, Callback
                         table.clear(VisitedCredits)
                         nextPart = GetClosestUnvisitedCredit(list)
                     end
-                    if nextPart and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+                    local activeChar = (InvisibleActive and CloneChar and CloneChar.Parent) and CloneChar or Player.Character
+                    if nextPart and activeChar and activeChar:FindFirstChild("HumanoidRootPart") then
                         pcall(function()
-                            local hrp = Player.Character.HumanoidRootPart
+                            local hrp = activeChar.HumanoidRootPart
                             local dist = (hrp.Position - nextPart.Position).Magnitude
-                            local speed = 350
-                            local tweenTime = math.max(dist / speed, 0.05)
-
-                            local tweenInfo = TweenInfo.new(tweenTime, Enum.EasingStyle.Linear)
-                            local tween = TweenService:Create(hrp, tweenInfo, { CFrame = nextPart.CFrame + Vector3.new(0, 2, 0) })
-                            tween:Play()
-
-                            local elapsed = 0
-                            while tween.PlaybackState == Enum.PlaybackState.Playing and CreditTweenEnabled do
-                                task.wait(0.01)
-                                elapsed = elapsed + 0.01
-                                if elapsed > tweenTime + 0.1 then break end
+                            if dist > 50 then
+                                hrp.CFrame = nextPart.CFrame + Vector3.new(0, 2, 0)
+                                hrp.Velocity = Vector3.new(0, 0, 0)
+                            else
+                                local speed = 350
+                                local tweenTime = math.max(dist / speed, 0.05)
+                                local tweenInfo = TweenInfo.new(tweenTime, Enum.EasingStyle.Linear)
+                                local tween = TweenService:Create(hrp, tweenInfo, { CFrame = nextPart.CFrame + Vector3.new(0, 2, 0) })
+                                tween:Play()
+                                local elapsed = 0
+                                while tween.PlaybackState == Enum.PlaybackState.Playing and CreditTweenEnabled do
+                                    task.wait(0.01)
+                                    elapsed = elapsed + 0.01
+                                    if elapsed > tweenTime + 0.1 then break end
+                                end
                             end
                         end)
                         VisitedCredits[nextPart] = true
@@ -949,6 +931,7 @@ tabmain1:AddToggle("JumpPowerToggle", { Text = "JumpPower Enable", Default = fal
         if OriginalChar then RestoreJP(OriginalChar) end
     end
 end })
+tabmain1:AddDivider()
 tabmain1:AddInput("WalkSpeedInput", { Default = "16", Numeric = true, Finished = false, ClearTextOnFocus = true, Text = "WalkSpeed Value", Callback = function(Value) local n = tonumber(Value) if n then WalkSpeedValue = n end end })
 tabmain1:AddInput("JumpPowerInput", { Default = "50", Numeric = true, Finished = false, ClearTextOnFocus = true, Text = "JumpPower Value", Callback = function(Value) local n = tonumber(Value) if n then JumpPowerValue = n end end })
 
@@ -1049,7 +1032,7 @@ tabmain2:AddToggle("ESPAllPlayers", { Text = "ESP Player", Default = false, Call
     end
 end })
 
-tabmain2:AddDivider()
+
 tabmain2:AddToggle("CreditESP", { Text = "ESP Credit", Default = false, Callback = function(Value)
     CreditESPEnabled = Value
     if Value then
@@ -1094,7 +1077,74 @@ tabmain2:AddToggle("CreditESP", { Text = "ESP Credit", Default = false, Callback
     end
 end })
 
-setGroupBox:AddLabel("setting ui")
+tabmain3:AddToggle("fullbright", {
+    Text = "fullbright",
+    Default = false,
+    Callback = function()
+        isEnabled = not isEnabled
+
+        if isEnabled then
+            oldSettings = {
+                Ambient = Lighting.Ambient,
+                OutdoorAmbient = Lighting.OutdoorAmbient,
+                Brightness = Lighting.Brightness,
+                ColorShift_Bottom = Lighting.ColorShift_Bottom,
+                ColorShift_Top = Lighting.ColorShift_Top,
+                ExposureCompensation = Lighting.ExposureCompensation,
+                FogEnd = Lighting.FogEnd,
+                GlobalShadows = Lighting.GlobalShadows,
+                ClockTime = Lighting.ClockTime
+            }
+
+            Lighting.Ambient = Color3.fromRGB(255, 255, 255)
+            Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
+            Lighting.Brightness = 2
+            Lighting.ColorShift_Bottom = Color3.fromRGB(0, 0, 0)
+            Lighting.ColorShift_Top = Color3.fromRGB(0, 0, 0)
+            Lighting.ExposureCompensation = 0
+            Lighting.FogEnd = 100000
+            Lighting.GlobalShadows = false
+            Lighting.ClockTime = 14
+        else
+            for prop, value in pairs(oldSettings) do
+                Lighting[prop] = value
+            end
+        end
+    end
+})
+
+tabmain3:AddToggle("AntiVoid", { Text = "Anti Void", Default = false, Callback = function(Value)
+    AntiVoidEnabled = Value
+    if Value then
+        AntiVoidThread = task.spawn(function()
+            while AntiVoidEnabled do
+                if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") and Player.Character:FindFirstChildOfClass("Humanoid") then
+                    local hrp = Player.Character.HumanoidRootPart
+                    local hum = Player.Character:FindFirstChildOfClass("Humanoid")
+                    local pos = hrp.Position
+                    if pos.Y <= -175 then
+                        if LastSavedCFrame then
+                            hrp.CFrame = LastSavedCFrame
+                            hrp.Velocity = Vector3.new(0, 0, 0)
+                        end
+                    else
+                        if hum.FloorMaterial ~= Enum.Material.Air then
+                            if not LastCheckPos or (pos - LastCheckPos).Magnitude > 0.1 then
+                                LastSavedCFrame = hrp.CFrame
+                                LastCheckPos = pos
+                            end
+                        end
+                    end
+                end
+                task.wait(0.1)
+            end
+        end)
+    else
+        AntiVoidEnabled = false
+    end
+end })
+
+setGroupBox:AddLabel("setting Script")
 local function DisableAllSystemsInstant()
     getgenv().MasterTP = false
     getgenv().TPAllEnabled = false
@@ -1124,7 +1174,7 @@ local function DisableAllSystemsInstant()
     end)
 end
 
-setGroupBox:AddButton({ Text = "restart ui", Func = function()
+setGroupBox:AddButton({ Text = "restart Script", Func = function()
     DisableAllSystemsInstant()
     if Library then Library:Unload() end
     task.spawn(function()
@@ -1133,7 +1183,7 @@ setGroupBox:AddButton({ Text = "restart ui", Func = function()
     end)
 end })
 setGroupBox:AddButton({
-    Text = "delete ui",
+    Text = "delete Script",
     Func = function()
         Library:Notify({
             Title = "Renux_Hub",
@@ -1146,18 +1196,14 @@ setGroupBox:AddButton({
         Library:Unload()
     end
 })
-setGroupBox:AddDivider()
-setGroupBox:AddButton({ Text = "Server Hop", Func = doServerHop })
-setGroupBox:AddButton({ Text = "Rejoin", Func = doRejoin })
 
-seGroupBox:AddLabel("credits by")
-seGroupBox:AddLabel("• Renux Hub")
-seGroupBox:AddLabel("• mspaint")
-seGroupBox:AddDivider()
-seGroupBox:AddLabel("logs update")
-seGroupBox:AddLabel("• esp it in esp Player")
-seGroupBox:AddLabel("• avoid it")
-seGroupBox:AddLabel("• fix Enable Ws and jp")
-seGroupBox:AddLabel("• improve farm credits")
-seGroupBox:AddLabel("• Blacklist Player kill all")
-seGroupBox:AddLabel("• improve invisible")
+setGroupBox2:AddButton({ Text = "Server Hop", Func = doServerHop })
+setGroupBox2:AddButton({ Text = "Rejoin", Func = doRejoin })
+
+setGB:AddLabel("• Renux Hub")
+setGB:AddLabel("• mspaint")
+
+seGroupBox:AddLabel("• fix invisible")
+seGroupBox:AddLabel("• up farm credits")
+seGroupBox:AddLabel("• add fullbright")
+print(success_load)
