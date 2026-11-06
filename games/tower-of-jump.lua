@@ -5,6 +5,7 @@ local ws = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
 local HS = game:GetService("HttpService")
 local TPS = game:GetService("TeleportService")
+local Players = game:GetService("Players")
 
 local AUTO_URL = "https://raw.githubusercontent.com/XVC-THE-CODER/Renux-Hub/refs/heads/main/games/tower-of-jump.lua"
 local AUTO_CODE = "loadstring(game:HttpGet('https://raw.githubusercontent.com/XVC-THE-CODER/Renux-Hub/refs/heads/main/games/tower-of-jump.lua'))()"
@@ -29,6 +30,14 @@ local function saveAuto(v)
     end)
 end
 
+local function deleteAuto()
+    pcall(function()
+        if delfile and isfile and isfile("rnx-toj.json") then
+            delfile("rnx-toj.json")
+        end
+    end)
+end
+
 local function loadAuto()
     local ok, data = pcall(function()
         if readfile and isfile and isfile("rnx-toj.json") then
@@ -43,6 +52,7 @@ local function loadAuto()
 end
 
 local isRunning = loadAuto()
+local isHopping = false
 
 local function getWins()
     local ls = plr:FindFirstChild("leaderstats")
@@ -65,6 +75,35 @@ local function getWins()
 end
 
 local winsBefore = getWins()
+
+local function isMapReady()
+    if not game:IsLoaded() then
+        return false
+    end
+    if not plr:FindFirstChild("leaderstats") then
+        return false
+    end
+    if not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") then
+        return false
+    end
+    local found = false
+    for _, obj in ipairs(ws:GetDescendants()) do
+        if obj:IsA("BasePart") and obj.Name == "WinsBrick" then
+            found = true
+            break
+        end
+    end
+    if not found then
+        return false
+    end
+    return true
+end
+
+Players.PlayerRemoving:Connect(function(p)
+    if p == plr and not isHopping then
+        deleteAuto()
+    end
+end)
 
 local executorName = "Unknown"
 pcall(function()
@@ -177,6 +216,7 @@ stopBtn.MouseLeave:Connect(function()
 end)
 if isRunning then
     stopBtn.Text = "STOP"
+    sub.Text = "Waiting Map..."
 end
 
 local orb = Instance.new("Frame", gui)
@@ -235,6 +275,7 @@ local currentUpTween = nil
 local hitCooldown = false
 local isArrived = false
 local arrivedStart = 0
+local mapReady = false
 
 stopBtn.MouseButton1Click:Connect(function()
     isRunning = not isRunning
@@ -244,16 +285,22 @@ stopBtn.MouseButton1Click:Connect(function()
     if isRunning then
         stopBtn.Text = "STOP"
         saveAuto(true)
+        isHopping = false
         hitCooldown = false
         isArrived = false
+        mapReady = false
+        sub.Text = "Waiting Map..."
         winsBefore = getWins()
         if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
             spawnY = plr.Character.HumanoidRootPart.Position.Y
         end
     else
         stopBtn.Text = "START"
-        saveAuto(false)
+        deleteAuto()
+        isHopping = false
         spawnY = nil
+        mapReady = false
+        sub.Text = "Executor: " .. executorName
         ws.Gravity = defaultGravity
     end
 end)
@@ -269,6 +316,16 @@ RunService.Heartbeat:Connect(function()
     if not plr.Character then return end
     local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
+    if not mapReady then
+        sub.Text = "Waiting Map..."
+        if not isMapReady() then
+            return
+        end
+        mapReady = true
+        sub.Text = "Executor: " .. executorName
+        winsBefore = getWins()
+        spawnY = hrp.Position.Y
+    end
     if not spawnY then
         spawnY = hrp.Position.Y
     end
@@ -318,6 +375,7 @@ RunService.Heartbeat:Connect(function()
             winsBefore = after
             isRunning = false
             stopBtn.Text = "START"
+            isHopping = true
             saveAuto(true)
             pcall(function()
                 if queue_on_teleport then
@@ -375,7 +433,8 @@ local function closeUI()
     if closing then return end
     closing = true
     isRunning = false
-    saveAuto(false)
+    isHopping = false
+    deleteAuto()
     ws.Gravity = defaultGravity
     btnR.Active = false
     btnY.Active = false
