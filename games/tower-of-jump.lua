@@ -6,6 +6,9 @@ local RunService = game:GetService("RunService")
 local HS = game:GetService("HttpService")
 local TPS = game:GetService("TeleportService")
 
+local AUTO_URL = "https://raw.githubusercontent.com/XVC-THE-CODER/Renux-Hub/refs/heads/main/games/tower-of-jump.lua"
+local AUTO_CODE = "loadstring(game:HttpGet('https://raw.githubusercontent.com/XVC-THE-CODER/Renux-Hub/refs/heads/main/games/tower-of-jump.lua'))()"
+
 local isPC = false
 pcall(function()
     local pf = UIS:GetPlatform()
@@ -21,15 +24,15 @@ local SC = isPC and 2.5 or 1
 local function saveAuto(v)
     pcall(function()
         if writefile then
-            writefile("rnx-joj.json", HS:JSONEncode({auto = v}))
+            writefile("rnx-toj.json", HS:JSONEncode({auto = v}))
         end
     end)
 end
 
 local function loadAuto()
     local ok, data = pcall(function()
-        if readfile and isfile and isfile("rnx-joj.json") then
-            return HS:JSONDecode(readfile("rnx-joj.json"))
+        if readfile and isfile and isfile("rnx-toj.json") then
+            return HS:JSONDecode(readfile("rnx-toj.json"))
         end
         return nil
     end)
@@ -316,6 +319,11 @@ RunService.Heartbeat:Connect(function()
             isRunning = false
             stopBtn.Text = "START"
             saveAuto(true)
+            pcall(function()
+                if queue_on_teleport then
+                    queue_on_teleport(AUTO_CODE)
+                end
+            end)
             pcall(function()
                 if plr.Character and plr.Character:FindFirstChild("Humanoid") then
                     plr.Character.Humanoid.Health = 0
