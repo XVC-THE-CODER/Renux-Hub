@@ -76,6 +76,46 @@ end
 
 local winsBefore = getWins()
 
+local function doServerHop()
+    isHopping = true
+    saveAuto(true)
+    pcall(function()
+        if queue_on_teleport then
+            queue_on_teleport(AUTO_CODE)
+        end
+    end)
+    pcall(function()
+        if plr.Character and plr.Character:FindFirstChild("Humanoid") then
+            plr.Character.Humanoid.Health = 0
+        end
+    end)
+    task.wait(0.6)
+    local done = false
+    pcall(function()
+        local url = "https://games.roblox.com/v1/games/" .. tostring(game.PlaceId) .. "/servers/Public?sortOrder=Asc&limit=100"
+        local res = game:HttpGet(url)
+        local data = HS:JSONDecode(res)
+        if data and data.data then
+            local candidates = {}
+            for _, s in ipairs(data.data) do
+                if s.id ~= game.JobId and s.playing < s.maxPlayers then
+                    table.insert(candidates, s.id)
+                end
+            end
+            if #candidates > 0 then
+                local pick = candidates[math.random(1, #candidates)]
+                TPS:TeleportToPlaceInstance(game.PlaceId, pick, plr)
+                done = true
+            end
+        end
+    end)
+    if not done then
+        pcall(function()
+            TPS:Teleport(game.PlaceId, plr)
+        end)
+    end
+end
+
 local function hasBubble()
     if not plr.Character then
         return true
@@ -366,6 +406,22 @@ RunService.Heartbeat:Connect(function()
     if sub.Text == "Waiting Bubble..." then
         sub.Text = "Executor: " .. executorName
     end
+    local curWins = getWins()
+    if curWins > winsBefore then
+        winsBefore = curWins
+        if currentUpTween then
+            pcall(function()
+                currentUpTween:Cancel()
+            end)
+        end
+        tweeningUp = false
+        ws.Gravity = defaultGravity
+        isRunning = false
+        stopBtn.Text = "START"
+        hitCooldown = true
+        doServerHop()
+        return
+    end
     if not spawnY then
         spawnY = hrp.Position.Y
     end
@@ -417,27 +473,10 @@ RunService.Heartbeat:Connect(function()
         end
         tweeningUp = false
         ws.Gravity = defaultGravity
-        local before = winsBefore
-        local after = getWins()
-        winsBefore = after
+        winsBefore = getWins()
         isRunning = false
         stopBtn.Text = "START"
-        isHopping = true
-        saveAuto(true)
-        pcall(function()
-            if queue_on_teleport then
-                queue_on_teleport(AUTO_CODE)
-            end
-        end)
-        pcall(function()
-            if plr.Character and plr.Character:FindFirstChild("Humanoid") then
-                plr.Character.Humanoid.Health = 0
-            end
-        end)
-        task.wait(0.6)
-        pcall(function()
-            TPS:Teleport(game.PlaceId, plr)
-        end)
+        doServerHop()
         return
     end
     local targetY = nearest.Position.Y
