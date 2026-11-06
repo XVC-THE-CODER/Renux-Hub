@@ -371,31 +371,25 @@ RunService.Heartbeat:Connect(function()
         ws.Gravity = defaultGravity
         local before = winsBefore
         local after = getWins()
-        if after > before then
-            winsBefore = after
-            isRunning = false
-            stopBtn.Text = "START"
-            isHopping = true
-            saveAuto(true)
-            pcall(function()
-                if queue_on_teleport then
-                    queue_on_teleport(AUTO_CODE)
-                end
-            end)
-            pcall(function()
-                if plr.Character and plr.Character:FindFirstChild("Humanoid") then
-                    plr.Character.Humanoid.Health = 0
-                end
-            end)
-            task.wait(0.6)
-            pcall(function()
-                TPS:Teleport(game.PlaceId, plr)
-            end)
-        else
-            winsBefore = after
-            hitCooldown = false
-            hrp.CFrame = hrp.CFrame + Vector3.new(0, 8, 0)
-        end
+        winsBefore = after
+        isRunning = false
+        stopBtn.Text = "START"
+        isHopping = true
+        saveAuto(true)
+        pcall(function()
+            if queue_on_teleport then
+                queue_on_teleport(AUTO_CODE)
+            end
+        end)
+        pcall(function()
+            if plr.Character and plr.Character:FindFirstChild("Humanoid") then
+                plr.Character.Humanoid.Health = 0
+            end
+        end)
+        task.wait(0.6)
+        pcall(function()
+            TPS:Teleport(game.PlaceId, plr)
+        end)
         return
     end
     local targetY = nearest.Position.Y
@@ -412,12 +406,11 @@ RunService.Heartbeat:Connect(function()
         ws.Gravity = 8
         local horizDist = (Vector3.new(hrp.Position.X, 0, hrp.Position.Z) - Vector3.new(nearest.Position.X, 0, nearest.Position.Z)).Magnitude
         if horizDist > 3 then
-            local horizTarget = CFrame.new(nearest.Position.X, spawnY, nearest.Position.Z)
-            hrp.CFrame = hrp.CFrame:Lerp(horizTarget, 0.12)
+            hrp.CFrame = CFrame.new(nearest.Position.X, spawnY, nearest.Position.Z)
         else
             if not tweeningUp then
                 tweeningUp = true
-                currentUpTween = TS:Create(hrp, TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {CFrame = nearest.CFrame + Vector3.new(0, 3, 0)})
+                currentUpTween = TS:Create(hrp, TweenInfo.new(3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {CFrame = nearest.CFrame + Vector3.new(0, 3, 0)})
                 currentUpTween:Play()
                 currentUpTween.Completed:Connect(function()
                     tweeningUp = false
