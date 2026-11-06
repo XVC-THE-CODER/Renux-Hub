@@ -76,6 +76,25 @@ end
 
 local winsBefore = getWins()
 
+local function hasBubble()
+    if not plr.Character then
+        return true
+    end
+    if plr.Character:FindFirstChildOfClass("ForceField") then
+        return true
+    end
+    for _, v in ipairs(plr.Character:GetChildren()) do
+        local n = string.lower(v.Name)
+        if n == "bubble" or n == "forcefield" or n == "immunity" or n == "shield" or n == "spawnprotection" or n == "protection" then
+            return true
+        end
+    end
+    if plr.Character:FindFirstChild("Bubble") then
+        return true
+    end
+    return false
+end
+
 local function isMapReady()
     if not game:IsLoaded() then
         return false
@@ -102,6 +121,19 @@ end
 Players.PlayerRemoving:Connect(function(p)
     if p == plr and not isHopping then
         deleteAuto()
+    end
+end)
+
+task.spawn(function()
+    while true do
+        pcall(function()
+            for _, obj in ipairs(ws:GetDescendants()) do
+                if obj:IsA("BasePart") and obj.Name == "WinsBrick" then
+                    obj.CanCollide = false
+                end
+            end
+        end)
+        task.wait(0.5)
     end
 end)
 
@@ -326,6 +358,14 @@ RunService.Heartbeat:Connect(function()
         winsBefore = getWins()
         spawnY = hrp.Position.Y
     end
+    if hasBubble() then
+        sub.Text = "Waiting Bubble..."
+        ws.Gravity = defaultGravity
+        return
+    end
+    if sub.Text == "Waiting Bubble..." then
+        sub.Text = "Executor: " .. executorName
+    end
     if not spawnY then
         spawnY = hrp.Position.Y
     end
@@ -333,6 +373,7 @@ RunService.Heartbeat:Connect(function()
     local nearestDist = 1e9
     for _, obj in ipairs(ws:GetDescendants()) do
         if obj:IsA("BasePart") and obj.Name == "WinsBrick" then
+            obj.CanCollide = false
             local dist = (obj.Position - hrp.Position).Magnitude
             if dist < nearestDist then
                 nearestDist = dist
@@ -345,12 +386,19 @@ RunService.Heartbeat:Connect(function()
         winsBefore = getWins()
         isArrived = false
     end
+    if nearestDist < 20 then
+        local fastDist = (nearest.Position - hrp.Position).Magnitude
+        if fastDist < 20 and fastDist >= 4 then
+            hrp.CFrame = nearest.CFrame + Vector3.new(0, 3, 0)
+            return
+        end
+    end
     if nearestDist < 4 then
         if not isArrived then
             isArrived = true
             arrivedStart = os.clock()
         end
-        if os.clock() - arrivedStart < 2 then
+        if os.clock() - arrivedStart < 5 then
             ws.Gravity = defaultGravity
             if currentUpTween then
                 pcall(function()
@@ -410,7 +458,7 @@ RunService.Heartbeat:Connect(function()
         else
             if not tweeningUp then
                 tweeningUp = true
-                currentUpTween = TS:Create(hrp, TweenInfo.new(3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {CFrame = nearest.CFrame + Vector3.new(0, 3, 0)})
+                currentUpTween = TS:Create(hrp, TweenInfo.new(5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {CFrame = nearest.CFrame + Vector3.new(0, 3, 0)})
                 currentUpTween:Play()
                 currentUpTween.Completed:Connect(function()
                     tweeningUp = false
