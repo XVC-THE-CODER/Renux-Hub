@@ -7,7 +7,6 @@ local HS = game:GetService("HttpService")
 local TPS = game:GetService("TeleportService")
 local Players = game:GetService("Players")
 local VU = game:GetService("VirtualUser")
-local GuiService = game:GetService("GuiService")
 
 local AUTO_URL = "https://raw.githubusercontent.com/XVC-THE-CODER/Renux-Hub/refs/heads/main/games/tower-of-jump.lua"
 local AUTO_CODE = "loadstring(game:HttpGet('https://raw.githubusercontent.com/XVC-THE-CODER/Renux-Hub/refs/heads/main/games/tower-of-jump.lua'))()"
@@ -71,7 +70,6 @@ end
 
 local isRunning = loadAuto()
 local isHopping = false
-local backupHopping = false
 
 local function getWins()
     local ls = plr:FindFirstChild("leaderstats")
@@ -95,47 +93,6 @@ end
 
 local winsBefore = getWins()
 
-local function doBackupHop()
-    if backupHopping then
-        return
-    end
-    backupHopping = true
-    isHopping = true
-    saveAuto(true)
-    pcall(function()
-        if queue_on_teleport then
-            queue_on_teleport(AUTO_CODE)
-        end
-    end)
-    task.wait(0.5)
-    local done = false
-    pcall(function()
-        local url = "https://games.roblox.com/v1/games/" .. tostring(game.PlaceId) .. "/servers/Public?sortOrder=Desc&limit=100"
-        local res = game:HttpGet(url)
-        local data = HS:JSONDecode(res)
-        if data and data.data then
-            local candidates = {}
-            for _, s in ipairs(data.data) do
-                if s.id ~= game.JobId and s.playing < s.maxPlayers then
-                    table.insert(candidates, s.id)
-                end
-            end
-            if #candidates > 0 then
-                local pick = candidates[math.random(1, #candidates)]
-                TPS:TeleportToPlaceInstance(game.PlaceId, pick, plr)
-                done = true
-            end
-        end
-    end)
-    if not done then
-        pcall(function()
-            TPS:Teleport(game.PlaceId, plr)
-        end)
-    end
-    task.wait(3)
-    backupHopping = false
-end
-
 local function doServerHop()
     isHopping = true
     saveAuto(true)
@@ -150,6 +107,7 @@ local function doServerHop()
         end
     end)
     task.wait(0.6)
+    local oldJob = game.JobId
     local done = false
     pcall(function()
         local url = "https://games.roblox.com/v1/games/" .. tostring(game.PlaceId) .. "/servers/Public?sortOrder=Asc&limit=100"
@@ -173,58 +131,16 @@ local function doServerHop()
         pcall(function()
             TPS:Teleport(game.PlaceId, plr)
         end)
-        task.wait(2)
-        doBackupHop()
     end
+    task.spawn(function()
+        task.wait(6)
+        if game.JobId == oldJob then
+            pcall(function()
+                plr:Kick("server hop has error reconnect please")
+            end)
+        end
+    end)
 end
-
-pcall(function()
-    GuiService.ErrorMessageChanged:Connect(function(msg)
-        if msg and string.find(string.lower(tostring(msg)), "server hop backup") then
-            task.spawn(function()
-                task.wait(0.5)
-                doBackupHop()
-            end)
-        end
-    end)
-end)
-
-pcall(function()
-    TPS.TeleportInitFailed:Connect(function(p, result, msg)
-        if p == plr then
-            task.spawn(function()
-                task.wait(1)
-                doBackupHop()
-            end)
-        end
-    end)
-end)
-
-pcall(function()
-    local coreGui = game:GetService("CoreGui")
-    local promptGui = coreGui:FindFirstChild("RobloxPromptGui")
-    if promptGui then
-        local overlay = promptGui:FindFirstChild("promptOverlay")
-        if overlay then
-            overlay.ChildAdded:Connect(function(child)
-                task.spawn(function()
-                    task.wait(0.3)
-                    local txt = ""
-                    pcall(function()
-                        for _, d in ipairs(child:GetDescendants()) do
-                            if d:IsA("TextLabel") then
-                                txt = txt .. " " .. d.Text
-                            end
-                        end
-                    end)
-                    if string.find(string.lower(txt), "server hop backup") then
-                        doBackupHop()
-                    end
-                end)
-            end)
-        end
-    end
-end)
 
 local function isMapReady()
     if not game:IsLoaded() then
