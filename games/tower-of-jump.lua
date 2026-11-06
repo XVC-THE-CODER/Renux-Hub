@@ -267,7 +267,7 @@ local sub = Instance.new("TextLabel", main)
 sub.Position = UDim2.new(0, 14 * SC, 0, 48 * SC)
 sub.Size = UDim2.new(1, -28 * SC, 0, 14 * SC)
 sub.BackgroundTransparency = 1
-sub.Text = "Executor: " .. executorName
+sub.Text = "Wins: " .. tostring(getWins())
 sub.Font = Enum.Font.GothamMedium
 sub.TextSize = 11 * SC
 sub.TextColor3 = Color3.fromRGB(180, 180, 180)
@@ -295,8 +295,25 @@ stopBtn.MouseLeave:Connect(function()
 end)
 if isRunning then
     stopBtn.Text = "STOP"
-    sub.Text = "Waiting Map..."
+    sub.Text = "Wins: " .. tostring(getWins()) .. " Waiting Map..."
 end
+
+task.spawn(function()
+    while true do
+        task.wait(0.5)
+        pcall(function()
+            if gui and gui.Parent and sub and sub.Parent then
+                if sub.Text ~= "Wins: " .. tostring(getWins()) then
+                    if string.find(sub.Text, "Waiting Map") then
+                        sub.Text = "Wins: " .. tostring(getWins()) .. " Waiting Map..."
+                    else
+                        sub.Text = "Wins: " .. tostring(getWins())
+                    end
+                end
+            end
+        end)
+    end
+end)
 
 local orb = Instance.new("Frame", gui)
 orb.Size = UDim2.new(0, 46 * SC, 0, 46 * SC)
@@ -368,7 +385,7 @@ stopBtn.MouseButton1Click:Connect(function()
         hitCooldown = false
         isArrived = false
         mapReady = false
-        sub.Text = "Waiting Map..."
+        sub.Text = "Wins: " .. tostring(getWins()) .. " Waiting Map..."
         winsBefore = getWins()
         if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
             spawnY = plr.Character.HumanoidRootPart.Position.Y
@@ -379,7 +396,7 @@ stopBtn.MouseButton1Click:Connect(function()
         isHopping = false
         spawnY = nil
         mapReady = false
-        sub.Text = "Executor: " .. executorName
+        sub.Text = "Wins: " .. tostring(getWins())
         ws.Gravity = defaultGravity
     end
 end)
@@ -396,16 +413,17 @@ RunService.Heartbeat:Connect(function()
     local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
     if not mapReady then
-        sub.Text = "Waiting Map..."
+        sub.Text = "Wins: " .. tostring(getWins()) .. " Waiting Map..."
         if not isMapReady() then
             return
         end
         mapReady = true
-        sub.Text = "Executor: " .. executorName
+        sub.Text = "Wins: " .. tostring(getWins())
         winsBefore = getWins()
         spawnY = hrp.Position.Y
     end
     local curWins = getWins()
+    sub.Text = "Wins: " .. tostring(curWins)
     if curWins > winsBefore then
         winsBefore = curWins
         if currentUpTween then
