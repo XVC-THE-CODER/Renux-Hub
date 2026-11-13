@@ -6,6 +6,7 @@ local PlaceScripts = {
     [12137249458] = "https://raw.githubusercontent.com/XVC-THE-CODER/Renux-Hub/refs/heads/main/games/Gunground.lua",
     [123847390309161] = "https://raw.githubusercontent.com/XVC-THE-CODER/Renux-Hub/refs/heads/main/games/sdco.lua",
     [7211666966] = "https://raw.githubusercontent.com/XVC-THE-CODER/Renux-Hub/refs/heads/main/games/tower-of-jump.lua",
+    [4580204640] = "https://raw.githubusercontent.com/XVC-THE-CODER/Renux-Hub/refs/heads/main/games/stk.lua",
 }
 
 local FallbackLink = "https://pastebin.com/raw/LvRLf96s"
