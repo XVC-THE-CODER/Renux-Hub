@@ -2301,7 +2301,23 @@ local main2 = isolator2:AddCard({
 })
 
 main2:AddDivider()
-main2:AddParagraph({ Content = "• release game survive the killer" })
+main2:AddParagraph({ Content =
+[[
+[add]
++ auto exit door
++ auto rivive
++ auto self rivive
++ auto vote map
+
+[fixed]
+~ auto loot
+~ avoid killer
+
+[delete]
+- auto load config
+- manual rivive
+- manual exit door ]]
+})
 
 local maingame = Window:AddPage({ Id = "script", Title = "main", Icon = "rbxassetid://98755624629571" })
 
